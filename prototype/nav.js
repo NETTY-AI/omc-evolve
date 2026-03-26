@@ -6,7 +6,7 @@
   var base = '';
   if (path.includes('/versions/')) {
     base = '../../';
-  } else if (path.includes('/current/')) {
+  } else if (path.includes('/current/') || path.includes('/reports/')) {
     base = '../';
   } else {
     base = '';
@@ -65,6 +65,7 @@
     '<div class="evolve-nav-title">Navigation</div>',
     '<a href="' + base + '"><span class="evolve-nav-icon">🏠</span> Home</a>',
     '<a href="' + base + 'review.html"><span class="evolve-nav-icon">📊</span> Review Portal</a>',
+    '<a href="' + base + 'reports/"><span class="evolve-nav-icon">📋</span> Cycle Reports</a>',
     '<div class="evolve-nav-title">Prototypes</div>',
     '<a href="' + base + 'current/"><span class="evolve-nav-icon">👤</span> User Flow (Latest)</a>',
     '<a href="' + base + 'current/creator.html"><span class="evolve-nav-icon">🎨</span> Creator Flow (Latest)</a>',
