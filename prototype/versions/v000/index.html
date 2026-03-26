@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ohmyc — prototype v000</title>
+  <style>
+    :root {
+      --tint: #FF8552;
+      --tint-bright: #FFA47A;
+      --tint-soft: #FFF4EE;
+      --label: #000000;
+      --label-secondary: rgba(60, 60, 67, 0.6);
+      --label-tertiary: rgba(60, 60, 67, 0.3);
+      --bg-primary: #FFFFFF;
+      --bg-secondary: #F2F2F7;
+      --font-system: -apple-system, BlinkMacSystemFont, 'SF Pro', system-ui, sans-serif;
+      --radius-lg: 20px;
+      --radius-full: 9999px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font-system);
+      background: var(--bg-primary);
+      color: var(--label);
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 16px;
+      padding: 32px;
+      text-align: center;
+    }
+
+    .wordmark {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      font-size: 40px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+    }
+
+    .wordmark .c { color: var(--tint); }
+
+    .tagline {
+      color: var(--label-secondary);
+      font-size: 17px;
+    }
+
+    .version {
+      margin-top: 24px;
+      background: var(--tint-soft);
+      color: var(--tint);
+      padding: 8px 16px;
+      border-radius: var(--radius-full);
+      font-size: 13px;
+      font-weight: 600;
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="wordmark">ohmy<span class="c">c</span></div>
+  <p class="tagline">your character, alive.</p>
+  <div class="version">prototype v000 — starting point</div>
+</body>
+</html>

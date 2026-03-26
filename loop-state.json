@@ -1,0 +1,15 @@
+{
+  "current_version": 0,
+  "fidelity_level": "L0",
+  "total_iterations": 0,
+  "last_human_feedback": null,
+  "pending_gaps": [
+    "F1: 온보딩 플로우 미구현",
+    "F2: 선제 발화 미구현",
+    "F3: 유저 주도 턴 미구현",
+    "F4: 4탭 구조 미구현",
+    "F5: 부재/복귀 시나리오 미구현",
+    "F6: 하루 사이클 미구현"
+  ],
+  "deploy_url": "https://netty-ai.github.io/ohmyc-evolve/prototype/current/"
+}

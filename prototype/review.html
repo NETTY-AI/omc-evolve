@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ohmyc-evolve — Review Portal</title>
+  <style>
+    :root {
+      --tint: #FF8552;
+      --tint-bright: #FFA47A;
+      --tint-soft: #FFF4EE;
+      --label: #1D1D1F;
+      --label-secondary: rgba(60, 60, 67, 0.6);
+      --label-tertiary: rgba(60, 60, 67, 0.3);
+      --bg: #F5F5F7;
+      --card: #FFFFFF;
+      --separator: rgba(60, 60, 67, 0.12);
+      --font: -apple-system, BlinkMacSystemFont, 'SF Pro', 'Inter', system-ui, sans-serif;
+      --radius-sm: 10px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-xl: 24px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --label: #F5F5F7;
+        --label-secondary: rgba(235, 235, 245, 0.6);
+        --label-tertiary: rgba(235, 235, 245, 0.3);
+        --bg: #000000;
+        --card: #1C1C1E;
+        --separator: rgba(84, 84, 88, 0.36);
+      }
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--label);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+    }
+
+    .header h1 {
+      font-size: 34px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .header h1 span { color: var(--tint); }
+
+    .badge {
+      background: var(--tint-soft);
+      color: var(--tint);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    /* Layout */
+    .layout {
+      display: grid;
+      grid-template-columns: 400px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Phone Frame */
+    .phone-wrapper {
+      position: sticky;
+      top: 24px;
+    }
+
+    .phone-frame {
+      width: 393px;
+      height: 852px;
+      border-radius: 48px;
+      border: 8px solid #1D1D1F;
+      overflow: hidden;
+      background: var(--card);
+      box-shadow: 0 24px 80px rgba(0,0,0,0.12);
+      position: relative;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .phone-frame { border-color: #3A3A3C; }
+    }
+
+    .phone-frame iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    .phone-notch {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 126px;
+      height: 34px;
+      background: #1D1D1F;
+      border-radius: 0 0 20px 20px;
+      z-index: 10;
+    }
+
+    .viewport-toggle {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      justify-content: center;
+    }
+
+    .viewport-toggle button {
+      background: var(--card);
+      border: 1px solid var(--separator);
+      border-radius: var(--radius-sm);
+      padding: 8px 16px;
+      font-size: 13px;
+      color: var(--label-secondary);
+      cursor: pointer;
+      font-family: var(--font);
+      transition: all 0.2s;
+    }
+
+    .viewport-toggle button.active {
+      background: var(--tint);
+      color: white;
+      border-color: var(--tint);
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+
+    .card h2 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    .card h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--label-secondary);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    /* Score */
+    .score-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .score-item {
+      background: var(--bg);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      text-align: center;
+    }
+
+    .score-item .label {
+      font-size: 12px;
+      color: var(--label-secondary);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .score-item .value {
+      font-size: 32px;
+      font-weight: 700;
+      margin: 4px 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .score-item .detail {
+      font-size: 12px;
+      color: var(--label-tertiary);
+    }
+
+    .score-item.pass .value { color: #34C759; }
+    .score-item.partial .value { color: var(--tint); }
+    .score-item.fail .value { color: #FF3B30; }
+
+    /* Checklist */
+    .checklist { list-style: none; }
+
+    .checklist li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--separator);
+      font-size: 15px;
+    }
+
+    .checklist li:last-child { border-bottom: none; }
+
+    .check { width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0; }
+    .check.pass { background: #34C759; }
+    .check.fail { background: var(--bg); border: 2px solid var(--separator); }
+
+    /* Changes */
+    .changes {
+      list-style: none;
+    }
+
+    .changes li {
+      padding: 8px 0;
+      border-bottom: 1px solid var(--separator);
+      font-size: 15px;
+    }
+
+    .changes li:last-child { border-bottom: none; }
+
+    .changes li::before {
+      content: "→ ";
+      color: var(--tint);
+      font-weight: 600;
+    }
+
+    /* Feedback Form */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 15px;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+
+    .form-group textarea, .form-group input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid var(--separator);
+      border-radius: var(--radius-sm);
+      font-family: var(--font);
+      font-size: 15px;
+      background: var(--bg);
+      color: var(--label);
+      resize: vertical;
+    }
+
+    .form-group textarea { min-height: 80px; }
+
+    .form-group textarea:focus, .form-group input:focus {
+      outline: none;
+      border-color: var(--tint);
+      box-shadow: 0 0 0 3px rgba(255, 133, 82, 0.15);
+    }
+
+    /* Stars */
+    .stars {
+      display: flex;
+      gap: 8px;
+    }
+
+    .stars button {
+      width: 40px;
+      height: 40px;
+      border: none;
+      background: none;
+      font-size: 28px;
+      cursor: pointer;
+      opacity: 0.3;
+      transition: opacity 0.15s, transform 0.15s;
+    }
+
+    .stars button.active { opacity: 1; }
+    .stars button:hover { transform: scale(1.15); }
+
+    .submit-btn {
+      width: 100%;
+      padding: 16px;
+      background: var(--tint);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 17px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: opacity 0.2s;
+    }
+
+    .submit-btn:hover { opacity: 0.9; }
+
+    /* Version History */
+    .version-list { list-style: none; }
+
+    .version-list li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--separator);
+    }
+
+    .version-list li:last-child { border-bottom: none; }
+
+    .version-list .v-name {
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    .version-list .v-level {
+      font-size: 13px;
+      color: var(--label-secondary);
+    }
+
+    .version-list a {
+      color: var(--tint);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    /* Gaps */
+    .gap-list { list-style: none; }
+
+    .gap-list li {
+      padding: 8px 12px;
+      margin-bottom: 6px;
+      background: var(--tint-soft);
+      color: var(--tint);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    /* Placeholder for dynamic content */
+    .placeholder-msg {
+      text-align: center;
+      color: var(--label-tertiary);
+      padding: 40px 20px;
+      font-size: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1>ohmyc-<span>evolve</span></h1>
+      <div class="badge" id="levelBadge">L0 — Starting</div>
+    </div>
+
+    <div class="layout">
+      <!-- Left: Phone Preview -->
+      <div class="phone-wrapper">
+        <div class="phone-frame">
+          <div class="phone-notch"></div>
+          <iframe id="preview" src="current/index.html"></iframe>
+        </div>
+        <div class="viewport-toggle">
+          <button class="active" onclick="setViewport(393, 852, this)">iPhone 15</button>
+          <button onclick="setViewport(430, 932, this)">iPhone 15 Pro Max</button>
+          <button onclick="setViewport(375, 812, this)">iPhone SE</button>
+        </div>
+      </div>
+
+      <!-- Right: Review Panel -->
+      <div class="review-panel">
+
+        <!-- Scores -->
+        <div class="card">
+          <h2>📊 자동 채점</h2>
+          <div class="score-grid" id="scores">
+            <div class="score-item fail">
+              <div class="label">L1 Flow</div>
+              <div class="value">0/6</div>
+              <div class="detail">핵심 플로우</div>
+            </div>
+            <div class="score-item fail">
+              <div class="label">L2 Interaction</div>
+              <div class="value">0/7</div>
+              <div class="detail">에이전트 체감</div>
+            </div>
+            <div class="score-item fail">
+              <div class="label">L3 Visual</div>
+              <div class="value">0/9</div>
+              <div class="detail">VI 정합성</div>
+            </div>
+            <div class="score-item fail">
+              <div class="label">L4 Polish</div>
+              <div class="value">0/5</div>
+              <div class="detail">완성도</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Changes -->
+        <div class="card">
+          <h2>🔄 이번 변경사항</h2>
+          <ul class="changes" id="changes">
+            <li>초기 placeholder — 워드마크 + 태그라인</li>
+          </ul>
+        </div>
+
+        <!-- Remaining Gaps -->
+        <div class="card">
+          <h2>📋 남은 Gap</h2>
+          <ul class="gap-list" id="gaps">
+            <li>F1: 온보딩 플로우 미구현</li>
+            <li>F2: 선제 발화 미구현</li>
+            <li>F3: 유저 주도 턴 미구현</li>
+            <li>F4: 4탭 구조 미구현</li>
+            <li>F5: 부재/복귀 시나리오 미구현</li>
+            <li>F6: 하루 사이클 미구현</li>
+          </ul>
+        </div>
+
+        <!-- Feedback Form -->
+        <div class="card">
+          <h2>💬 사람 평가</h2>
+          <p style="color: var(--label-secondary); font-size: 14px; margin-bottom: 16px;">
+            피드백은 다음 이터레이션의 최우선 입력이 됩니다.
+          </p>
+
+          <div class="form-group">
+            <label>전체 평가</label>
+            <div class="stars" id="stars">
+              <button onclick="setRating(1)">⭐</button>
+              <button onclick="setRating(2)">⭐</button>
+              <button onclick="setRating(3)">⭐</button>
+              <button onclick="setRating(4)">⭐</button>
+              <button onclick="setRating(5)">⭐</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>👍 좋은 점</label>
+            <textarea id="good" placeholder="잘된 부분..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>👎 아쉬운 점</label>
+            <textarea id="bad" placeholder="개선이 필요한 부분..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>🎯 다음에 집중할 것</label>
+            <textarea id="focus" placeholder="다음 이터레이션에서 가장 중요한 것..."></textarea>
+          </div>
+
+          <button class="submit-btn" onclick="submitFeedback()">피드백 제출 → 클립보드 복사</button>
+        </div>
+
+        <!-- Version History -->
+        <div class="card">
+          <h2>📁 버전 히스토리</h2>
+          <ul class="version-list" id="versions">
+            <li>
+              <div>
+                <div class="v-name">v000</div>
+                <div class="v-level">L0 — 시작점</div>
+              </div>
+              <a href="versions/v000/index.html">보기</a>
+            </li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let rating = 0;
+
+    function setViewport(w, h, btn) {
+      const frame = document.querySelector('.phone-frame');
+      frame.style.width = w + 'px';
+      frame.style.height = h + 'px';
+      document.querySelectorAll('.viewport-toggle button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    function setRating(n) {
+      rating = n;
+      document.querySelectorAll('.stars button').forEach((btn, i) => {
+        btn.classList.toggle('active', i < n);
+      });
+    }
+
+    function submitFeedback() {
+      const feedback = {
+        version: document.getElementById('levelBadge').textContent,
+        rating: rating,
+        good: document.getElementById('good').value,
+        bad: document.getElementById('bad').value,
+        focus_next: document.getElementById('focus').value,
+        timestamp: new Date().toISOString()
+      };
+
+      const text = `## Human Feedback — ${feedback.version}
+⭐ ${feedback.rating}/5
+👍 ${feedback.good || '(없음)'}
+👎 ${feedback.bad || '(없음)'}
+🎯 다음 집중: ${feedback.focus_next || '(없음)'}
+📅 ${feedback.timestamp}`;
+
+      navigator.clipboard.writeText(text).then(() => {
+        alert('피드백이 클립보드에 복사되었습니다.\nSlack #11-omc 쓰레드에 붙여넣기 하세요.');
+      }).catch(() => {
+        prompt('복사 실패 — 수동으로 복사하세요:', text);
+      });
+    }
+  </script>
+</body>
+</html>
