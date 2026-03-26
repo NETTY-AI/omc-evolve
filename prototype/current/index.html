@@ -61,6 +61,9 @@
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-smooth: cubic-bezier(.22, 1, .36, 1);
 
+  /* ── Accessibility ── */
+  --motion-ok: 1; /* overridden by prefers-reduced-motion */
+
   /* ── Spacing (8pt grid, 4pt half) ── */
   --space-xs: 4px; --space-sm: 8px; --space-md: 12px;
   --space-base: 16px; --space-lg: 20px; --space-xl: 24px;
@@ -78,6 +81,37 @@ body {
   display:flex; align-items:center; justify-content:center;
   min-height:100vh; color:var(--label);
   -webkit-font-smoothing: antialiased;
+}
+
+/* ═══ Accessibility: Reduced Motion ═══ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .screen {
+    transition: none !important;
+    transform: none !important;
+  }
+  /* Keep alive-dot visible but static */
+  .alive-dot { animation: none !important; opacity: 1; }
+  /* Keep typing dots visible but static */
+  .typing span { animation: none !important; opacity: 0.6; }
+  /* Keep push slideDown but instant */
+  .push-card { animation: none !important; }
+  .msg { animation: none !important; opacity: 1; transform: none !important; }
+  .chat-choices { animation: none !important; opacity: 1; }
+  .memory-pill { animation: none !important; opacity: 1; }
+  .summary-card { animation: none !important; opacity: 1; }
+}
+
+/* ═══ High Contrast: improve label-tertiary readability ═══ */
+@media (forced-colors: active) {
+  :root {
+    --label-tertiary: rgba(60, 60, 67, 0.5);
+    --glass-border: rgba(0, 0, 0, 0.3);
+  }
 }
 
 /* ═══ Phone Frame ═══ */
@@ -1013,16 +1047,16 @@ body {
 <!-- 2. Welcome -->
 <div class="screen" id="welcome">
   <div class="welcome-character" id="welcome-char-svg"></div>
-  <div class="welcome-title">Pick a character.<br>They'll take care of you.</div>
-  <div class="welcome-sub">They remember everything, check in on you, and grow with you.</div>
-  <button class="btn-primary" onclick="goTo('q1')">Get Started</button>
+  <div class="welcome-title">Meet someone<br>who actually remembers you.</div>
+  <div class="welcome-sub">A character who checks in, grows with you, and never forgets.</div>
+  <button class="btn-primary" onclick="goTo('q1')">Let's find your match</button>
 </div>
 
 <!-- 3. Q1 -->
 <div class="screen question-screen" id="q1">
   <div class="q-progress"><div class="q-progress-dot active"></div><div class="q-progress-dot"></div></div>
-  <div class="q-label">About You</div>
-  <div class="q-title">When does your day usually start?</div>
+  <div class="q-label">Quick one</div>
+  <div class="q-title">When do you usually wake up?</div>
   <div class="q-options">
     <div class="q-option" onclick="selectQ1('early')"><div class="q-option-icon" style="background:#FFF5E6">🌅</div><div><div class="q-option-text">Early Bird</div><div class="q-option-sub">Before 7am</div></div></div>
     <div class="q-option" onclick="selectQ1('mid')"><div class="q-option-icon" style="background:#FFF8EC">☀️</div><div><div class="q-option-text">Mid-Morning</div><div class="q-option-sub">7 – 9am</div></div></div>
@@ -1033,8 +1067,8 @@ body {
 <!-- 4. Q2 -->
 <div class="screen question-screen" id="q2">
   <div class="q-progress"><div class="q-progress-dot active"></div><div class="q-progress-dot active"></div></div>
-  <div class="q-label">Your Vibe</div>
-  <div class="q-title">What kind of companion feels right?</div>
+  <div class="q-label">Your style</div>
+  <div class="q-title">What kind of energy do you want?</div>
   <div class="q-options">
     <div class="q-option" onclick="selectQ2('warm')"><div class="q-option-icon" style="background:#FFF0F0">💛</div><div><div class="q-option-text">Warm & Caring</div><div class="q-option-sub">Gentle, always there for you</div></div></div>
     <div class="q-option" onclick="selectQ2('playful')"><div class="q-option-icon" style="background:#FFF5E6">✨</div><div><div class="q-option-text">Playful & Fun</div><div class="q-option-sub">Light-hearted, makes you smile</div></div></div>
@@ -1044,8 +1078,8 @@ body {
 
 <!-- 1.5 Character Select -->
 <div class="screen" id="characters">
-  <div class="char-title">We found someone for you</div>
-  <div class="char-sub">Based on your answers, here's a match.</div>
+  <div class="char-title">Here's your match ✨</div>
+  <div class="char-sub">We picked someone who fits your vibe.</div>
   <!-- Hero Card (Lumi) -->
   <div class="char-hero" id="lumi-card" onclick="selectCharacter()">
     <div class="char-hero-art" id="lumi-hero-art"></div>
@@ -1068,7 +1102,7 @@ body {
     <div class="char-locked-card"><div class="char-locked-art" id="locked2-avatar"></div><div class="char-locked-badge">Coming Soon</div></div>
     <div class="char-locked-card"><div class="char-locked-art" id="locked3-avatar"></div><div class="char-locked-badge">Coming Soon</div></div>
   </div>
-  <div class="char-select-hint">Tap Lumi to begin</div>
+  <div class="char-select-hint">Tap to say hi 👋</div>
 </div>
 
 <!-- 1.6 Onboarding Chat -->
@@ -1090,10 +1124,10 @@ body {
 <!-- 7. Closing -->
 <div class="screen" id="closing">
   <div class="closing-character" id="closing-char-svg"></div>
-  <div class="closing-msg" id="closing-msg">See you tomorrow!</div>
+  <div class="closing-msg" id="closing-msg">Your character is alive. 💛</div>
   <div class="closing-sub" id="closing-sub"></div>
   <div style="height:var(--space-xl)"></div>
-  <button class="btn-primary" id="closing-btn" onclick="goToHome()">Enter Home</button>
+  <button class="btn-primary" id="closing-btn" onclick="goToHome()">Take me home →</button>
   <div style="flex:1"></div>
   <div class="closing-tagline">your character, alive.</div>
   <div style="height:var(--space-sm)"></div>
@@ -1187,9 +1221,9 @@ body {
     <button class="miniapp-back" onclick="goTo('home')">‹</button>
     <div><div class="miniapp-title">Today</div><div class="miniapp-subtitle" id="miniapp-today-date">Tuesday, March 24</div></div>
   </div>
-  <div class="miniapp-source">💬 All data from conversations with Lumi</div>
+  <div class="miniapp-source">💬 Built from your conversations — no forms</div>
   <div id="miniapp-today-content"></div>
-  <div class="miniapp-empty hidden" id="miniapp-today-empty">Nothing here yet.<br>Tell Lumi about your plans and they'll show up here.</div>
+  <div class="miniapp-empty hidden" id="miniapp-today-empty">Nothing yet.<br>Just mention your plans to Lumi — she'll remember.</div>
 </div>
 
 <!-- Mini-App: Memories -->
@@ -1198,14 +1232,14 @@ body {
     <button class="miniapp-back" onclick="goTo('home')">‹</button>
     <div><div class="miniapp-title">Memories</div><div class="miniapp-subtitle">What Lumi knows about you</div></div>
   </div>
-  <div class="miniapp-source">🧠 Collected through conversation, never forms</div>
+  <div class="miniapp-source">🧠 Everything Lumi knows about you — from conversation</div>
   <div id="miniapp-memories-content"></div>
 </div>
 
 <!-- 4.1 Life Grid -->
 <div class="screen life-grid-screen" id="life-grid">
   <div class="life-grid-header">
-    <div><div class="life-grid-title">Your Life</div><div class="life-grid-sub">Built from conversations, not forms.</div></div>
+    <div><div class="life-grid-title">Your Life</div><div class="life-grid-sub">Lumi builds this as you talk. No input needed.</div></div>
   </div>
   <div class="life-grid" id="life-grid-cards"></div>
   <div style="height:80px"></div>
@@ -1223,7 +1257,7 @@ body {
   <div class="life-grid-header">
     <div style="display:flex;align-items:center;gap:var(--space-md)">
       <button class="miniapp-back" onclick="goTo('life-grid')">‹</button>
-      <div><div class="life-grid-title">Store</div><div class="life-grid-sub">Teach your character new things.</div></div>
+      <div><div class="life-grid-title">Add to your life</div><div class="life-grid-sub">Give Lumi more to talk about with you.</div></div>
     </div>
   </div>
   <div id="store-cards"></div>
@@ -1246,19 +1280,19 @@ body {
     <button class="miniapp-back" onclick="goTo('life-grid')">‹</button>
     <div><div class="miniapp-title">Meals</div><div class="miniapp-subtitle">What you've been eating</div></div>
   </div>
-  <div class="miniapp-source">💬 All data from conversations with Lumi</div>
+  <div class="miniapp-source">💬 Lumi tracks this naturally — no logging needed</div>
   <div id="miniapp-meals-content"></div>
-  <div class="miniapp-empty hidden" id="miniapp-meals-empty">No meals recorded yet.<br>Lumi will start asking about your meals.</div>
+  <div class="miniapp-empty hidden" id="miniapp-meals-empty">Nothing yet.<br>Lumi will ask about your meals at natural moments.</div>
 </div>
 
 <!-- 5. Discover (Marketplace) -->
 <div class="screen discover-screen" id="discover">
   <div class="discover-header">
-    <div class="discover-title">Discover</div>
+    <div class="discover-title">Characters</div>
   </div>
   <div class="discover-search">
     <span class="discover-search-icon">🔍</span>
-    <input class="discover-search-input" placeholder="Search characters..." disabled>
+    <input class="discover-search-input" placeholder="Find your next character..." disabled>
   </div>
   <!-- Featured Hero Card: Lumi -->
   <div class="discover-hero" id="discover-hero" onclick="goTo('char-profile')">
@@ -1381,7 +1415,7 @@ body {
       </div>
       <div class="chats-item-content">
         <div class="chats-item-name">Lumi</div>
-        <div class="chats-item-last" id="chats-last-msg">Sleep well, see you tomorrow! 🌙</div>
+        <div class="chats-item-last" id="chats-last-msg">Sleep well. I'll be here tomorrow. 🌙</div>
       </div>
       <div class="chats-item-right">
         <div class="chats-item-time">10:30 PM</div>
@@ -1389,7 +1423,7 @@ body {
       </div>
     </div>
   </div>
-  <button class="chats-find-more" onclick="switchTab('discover')">Meet someone new →</button>
+  <button class="chats-find-more" onclick="switchTab('discover')">Find another character →</button>
   <div style="height:80px"></div>
   <div class="tab-bar" id="tab-bar-chats">
     <button class="tab-item" onclick="switchTab('home')"><span class="tab-icon">🏠</span><span class="tab-label light">Home</span></button>
@@ -1739,7 +1773,7 @@ async function startChat(){
           if(agreedTomorrow)await chat1.addBot("I'll be here at "+wakeTime+". Sleep well, "+userName+". 💛");
           else await chat1.addBot("No pressure! I'll be right here. See you soon, "+userName+"! 💛");
           setTimeout(function(){
-            document.getElementById('closing-msg').textContent="Your character is alive.";
+            document.getElementById('closing-msg').textContent="Your character is alive. 💛";
             document.getElementById('closing-sub').textContent=agreedTomorrow?"Lumi will check in at "+wakeTime:"Lumi will be here when you need her";
             goTo('closing');
           },2500);
@@ -2014,19 +2048,19 @@ function renderWidgets(isDark){
 
   // Today widget
   var todayItems=lifeData.tasks.filter(function(t){return t.day===2;});
-  var w1=makeWidget('📋','Today',todayItems.length?todayItems.length+' item'+(todayItems.length>1?'s':''):'No plans yet',theme,todayItems.length>0);
+  var w1=makeWidget('📋','Today',todayItems.length?todayItems.length+' item'+(todayItems.length>1?'s':''):'Tell Lumi your plans',theme,todayItems.length>0);
   w1.addEventListener('click',function(){openMiniApp('today');});
   grid.appendChild(w1);
 
   // Mood widget
   var latestMood=lifeData.mood.length?lifeData.mood[lifeData.mood.length-1]:null;
-  var w2=makeWidget('💛','Mood',latestMood?latestMood.label:'Not recorded',theme,!!latestMood);
+  var w2=makeWidget('💛','Mood',latestMood?latestMood.label:'Just chat',theme,!!latestMood);
   w2.addEventListener('click',function(){openMiniApp('memories');});
   grid.appendChild(w2);
 
   // Memories widget
   var memCount=lifeData.memories.length;
-  var w3=makeWidget('🧠','Memories',memCount?memCount+' thing'+(memCount>1?'s':'')+' saved':'Talk to save',theme,memCount>0);
+  var w3=makeWidget('🧠','Memories',memCount?memCount+' thing'+(memCount>1?'s':'')+' remembered':'Start chatting',theme,memCount>0);
   w3.addEventListener('click',function(){openMiniApp('memories');});
   grid.appendChild(w3);
 
@@ -2038,7 +2072,7 @@ function renderWidgets(isDark){
   // "Your Life" link
   var link=document.createElement('button');
   link.className='btn-ghost';link.style.cssText='width:100%;margin-top:var(--space-xs);font-size:13px;color:var(--tint);';
-  link.textContent='Your Life →';
+  link.textContent='See everything →';
   link.addEventListener('click',function(){switchTab('life');});
   grid.appendChild(link);
 
@@ -2401,7 +2435,7 @@ function jumpTo(stage){
     case 'q1':goTo('q1');break;case 'q2':goTo('q2');break;
     case 'characters':goTo('characters');break;
     case 'chat':var mc=document.getElementById('messages');while(mc.firstChild)mc.removeChild(mc.firstChild);goTo('chat');startChat();break;
-    case 'closing':document.getElementById('closing-msg').textContent='Your character is alive.';
+    case 'closing':document.getElementById('closing-msg').textContent='Your character is alive. 💛';
       document.getElementById('closing-sub').textContent='Lumi will check in at '+wakeTime;agreedTomorrow=true;goTo('closing');break;
     case 'home-evening':goTo('home');setupHome('evening');setTimeout(showEveningBubble,600);break;
     case 'push-sim':agreedTomorrow=true;skipToMorning();break;
