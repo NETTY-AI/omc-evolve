@@ -383,12 +383,16 @@
       <div class="phone-wrapper">
         <div class="phone-frame">
           <div class="phone-notch"></div>
-          <iframe id="preview" src="current/user.html"></iframe>
+          <iframe id="preview" src="current/index.html"></iframe>
         </div>
         <div class="viewport-toggle">
           <button class="active" onclick="setViewport(393, 852, this)">iPhone 15</button>
-          <button onclick="setViewport(430, 932, this)">iPhone 15 Pro Max</button>
-          <button onclick="setViewport(375, 812, this)">iPhone SE</button>
+          <button onclick="setViewport(430, 932, this)">Pro Max</button>
+          <button onclick="setViewport(375, 812, this)">SE</button>
+        </div>
+        <div class="viewport-toggle" style="margin-top:8px">
+          <button class="active" onclick="switchFlow('current/index.html', this)">👤 User Flow</button>
+          <button onclick="switchFlow('current/creator.html', this)">🎨 Creator Flow</button>
         </div>
       </div>
 
@@ -499,6 +503,12 @@
 
   <script>
     let rating = 0;
+
+    function switchFlow(src, btn) {
+      document.getElementById('preview').src = src;
+      btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
 
     function setViewport(w, h, btn) {
       const frame = document.querySelector('.phone-frame');
