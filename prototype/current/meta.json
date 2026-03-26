@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "created_at": "2026-03-26T00:00:00+09:00",
+  "fidelity_level": "L2",
+  "checklist_score": {
+    "L1": "6/6",
+    "L2": "6/7",
+    "L3": "7/9",
+    "L4": "2/5"
+  },
+  "l1_details": {
+    "F1": "PASS — Splash→Welcome→OnboardWake→OnboardVibe→CharSelect→FirstChat→App",
+    "F2": "PASS — Lumi initiates in both first-chat (auto-play) and main chat screen; push notification proactive trigger",
+    "F3": "PASS — User can type freely in chat, tap quick-reply cards, or open chat from Chats tab",
+    "F4": "PASS — 홈/둘러보기/대화/프로필 4-tab structure with glass tab bar",
+    "F5": "PASS — Absence simulation: temp drops to 34.5°C over time, return triggers push + temp recovery",
+    "F6": "PASS — 아침/낮/저녁/밤 cycle tabs update greeting, Lumi message, and status text"
+  },
+  "l2_details": {
+    "I1": "PASS — Memory pill (glass, tint-bordered) appears in chat when Lumi references past info",
+    "I2": "PASS — Temperature shown as glass pill (temp-dot pulse animation) + bar fill + color states",
+    "I3": "PARTIAL — Vibe selection adjusts memory entry; tone consistency exists but growth curve not visualized",
+    "I4": "PASS — No streaks, no guilt mechanics; all interactions are gentle and optional",
+    "I5": "PASS — Lumi voice consistent: warm, bilingual, remembers, initiates",
+    "I6": "PASS — Bidirectional: Lumi proactive push + first-chat auto-play; user quick-replies + free-text",
+    "I7": "PASS — Profile → '기억 목록' screen shows all memory entries with delete option"
+  },
+  "l3_details": {
+    "V1": "PASS — #FF8552 on CTA, active tab, user bubble, tint pill, temp dot",
+    "V2": "PASS — 8pt grid spacing, 44pt min touch targets on all interactive elements",
+    "V3": "PASS — Tab bar, chat header, push notification, temp pill all use backdrop-filter glass",
+    "V4": "PASS — Breathe animation on alive dots (3s, scale 1↔1.15, opacity 0.3↔0.6); typing dots; pulse-ring on temp dot",
+    "V5": "PASS — Title 28-34px/700, body 15-17px/400-500, caption 11-13px/400-500",
+    "V6": "PASS — prefers-color-scheme:dark block adjusts all surface, text, border, glass tokens",
+    "V7": "PASS — 2:3 char cards in discover grid; featured card has alive dot + badge",
+    "V8": "PASS — char left (F0E6E6, border-bottom-left-radius:4px), user right (#FF8552, border-bottom-right-radius:4px)",
+    "V9": "PARTIAL — Korean-first UI text, friendly tone; could be sharper in some labels"
+  },
+  "changes": [
+    "초기 프로토타입 구축 — 전체 플로우 커버 (F1-F6 모두)",
+    "온보딩 2단계 (기상시간 + 분위기) 구현",
+    "캐릭터 선택 화면 — Lumi 피처드 카드 + 4개 추가 캐릭터 그리드",
+    "퍼스트챗 자동재생 시퀀스 — 타이핑 인디케이터 포함",
+    "4탭 구조 (홈/디스커버/대화/프로필) + 글래스 탭바",
+    "온도 시스템 시각화 — 글래스 필, 펄스 애니메이션, 상태별 색상",
+    "메모리 필 (chat에서 기억 참조 시 표시)",
+    "부재→복귀 시뮬레이션 (온도 하강/복구)",
+    "하루 사이클 시뮬레이션 (아침/낮/저녁/밤 탭)",
+    "푸시 알림 시뮬레이션 (Lumi 선제 발화)",
+    "Breathe 애니메이션 on alive dots",
+    "다크 모드 지원 (prefers-color-scheme)",
+    "기억 목록 화면 (투명성 UI, I7)"
+  ],
+  "review": {
+    "agent_a": { "verdict": "PASS", "issues": ["I3: 캐릭터 성장 변화 시각화 미흡 (minor)"] },
+    "agent_b": { "verdict": "PASS", "issues": ["V9: 브랜드 보이스 일부 레이블 개선 여지 (minor)", "P1: 화면 전환 애니메이션 추가 개선 가능 (minor)"] }
+  },
+  "human_feedback": null,
+  "url": "https://minu608.github.io/ohmyc-evolve/prototype/versions/v001/",
+  "screenshot": null
+}

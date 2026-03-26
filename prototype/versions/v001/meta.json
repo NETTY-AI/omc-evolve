@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "created_at": "2026-03-26T16:55:00+09:00",
+  "fidelity_level": "L1",
+  "builder": "netty",
+  "scores": {
+    "ux_critic": null,
+    "spec_checker": null,
+    "vi_auditor": null,
+    "user_sim": null,
+    "total": null
+  },
+  "checklist": {
+    "L1": "6/6",
+    "L2": "pending",
+    "L3": "pending",
+    "L4": "pending"
+  },
+  "changes": [
+    "F1: Onboarding → Character Select → First Chat (7 screens)",
+    "F2: Proactive turn — push notification + afternoon check-in",
+    "F3: User initiated turn — Home CTA + Chats tab entry",
+    "F4: 4-tab structure (Home/Discover/Chats/Profile)",
+    "F5: 2-week absence → return scenario with temperature cooling",
+    "F6: Day cycle (morning/daytime/afternoon/evening/night)"
+  ],
+  "prototype_url": "https://netty-ai.github.io/ohmyc-evolve/current/",
+  "review_url": null,
+  "human_feedback": null
+}
