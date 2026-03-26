@@ -1267,9 +1267,8 @@ body {
   </div>
   <div class="tab-bar-container"><div class="tab-bar dark" id="tab-bar">
     <button class="tab-item active" onclick="switchTab('home')"><span class="tab-icon">🏠</span><span class="tab-label dark">Home</span></button>
-    <button class="tab-item" onclick="switchTab('discover')"><span class="tab-icon">🔍</span><span class="tab-label dark">Discover</span></button>
-    <button class="tab-item create-btn" onclick="switchTab('create')"><span class="tab-icon">✏️</span><span class="tab-label dark">Create</span></button>
     <button class="tab-item" onclick="switchTab('chats')"><span class="tab-icon">💬</span><span class="tab-label dark">Chats</span></button>
+    <button class="tab-item" onclick="switchTab('miniapps')"><span class="tab-icon">🧩</span><span class="tab-label dark">Mini-Apps</span></button>
     <button class="tab-item" onclick="switchTab('profile')"><span class="tab-icon">👤</span><span class="tab-label dark">Profile</span></button>
   </div></div>
 </div>
@@ -1353,9 +1352,8 @@ body {
   <div style="height:80px"></div>
   <div class="tab-bar-container"><div class="tab-bar" id="tab-bar-life">
     <button class="tab-item" onclick="switchTab('home')"><span class="tab-icon">🏠</span><span class="tab-label light">Home</span></button>
-    <button class="tab-item active" onclick="switchTab('discover')"><span class="tab-icon">🔍</span><span class="tab-label light">Discover</span></button>
-    <button class="tab-item create-btn" onclick="switchTab('create')"><span class="tab-icon">✏️</span><span class="tab-label light">Create</span></button>
     <button class="tab-item" onclick="switchTab('chats')"><span class="tab-icon">💬</span><span class="tab-label light">Chats</span></button>
+    <button class="tab-item active" onclick="switchTab('miniapps')"><span class="tab-icon">🧩</span><span class="tab-label light">Mini-Apps</span></button>
     <button class="tab-item" onclick="switchTab('profile')"><span class="tab-icon">👤</span><span class="tab-label light">Profile</span></button>
   </div></div>
 </div>
@@ -1434,9 +1432,8 @@ body {
   <div style="height:20px"></div>
   <div class="tab-bar-container"><div class="tab-bar" id="tab-bar-discover">
     <button class="tab-item" onclick="switchTab('home')"><span class="tab-icon">🏠</span><span class="tab-label light">Home</span></button>
-    <button class="tab-item active" onclick="switchTab('discover')"><span class="tab-icon">🔍</span><span class="tab-label light">Discover</span></button>
-    <button class="tab-item create-btn" onclick="switchTab('create')"><span class="tab-icon">✏️</span><span class="tab-label light">Create</span></button>
     <button class="tab-item" onclick="switchTab('chats')"><span class="tab-icon">💬</span><span class="tab-label light">Chats</span></button>
+    <button class="tab-item" onclick="switchTab('miniapps')"><span class="tab-icon">🧩</span><span class="tab-label light">Mini-Apps</span></button>
     <button class="tab-item" onclick="switchTab('profile')"><span class="tab-icon">👤</span><span class="tab-label light">Profile</span></button>
   </div></div>
 </div>
@@ -1537,13 +1534,12 @@ body {
       </div>
     </div>
   </div>
-  <button class="chats-find-more" onclick="switchTab('discover')">Find another character →</button>
+  <button class="chats-find-more" onclick="switchTab('profile')">Find another character →</button>
   <div style="height:80px"></div>
   <div class="tab-bar-container"><div class="tab-bar" id="tab-bar-chats">
     <button class="tab-item" onclick="switchTab('home')"><span class="tab-icon">🏠</span><span class="tab-label light">Home</span></button>
-    <button class="tab-item" onclick="switchTab('discover')"><span class="tab-icon">🔍</span><span class="tab-label light">Discover</span></button>
-    <button class="tab-item create-btn" onclick="switchTab('create')"><span class="tab-icon">✏️</span><span class="tab-label light">Create</span></button>
     <button class="tab-item active" onclick="switchTab('chats')"><span class="tab-icon">💬</span><span class="tab-label light">Chats</span></button>
+    <button class="tab-item" onclick="switchTab('miniapps')"><span class="tab-icon">🧩</span><span class="tab-label light">Mini-Apps</span></button>
     <button class="tab-item" onclick="switchTab('profile')"><span class="tab-icon">👤</span><span class="tab-label light">Profile</span></button>
   </div></div>
 </div>
@@ -1601,9 +1597,8 @@ body {
   </div>
   <div class="tab-bar-container"><div class="tab-bar" id="tab-bar-profile">
     <button class="tab-item" onclick="switchTab('home')"><span class="tab-icon">🏠</span><span class="tab-label light">Home</span></button>
-    <button class="tab-item" onclick="switchTab('discover')"><span class="tab-icon">🔍</span><span class="tab-label light">Discover</span></button>
-    <button class="tab-item create-btn" onclick="switchTab('create')"><span class="tab-icon">✏️</span><span class="tab-label light">Create</span></button>
     <button class="tab-item" onclick="switchTab('chats')"><span class="tab-icon">💬</span><span class="tab-label light">Chats</span></button>
+    <button class="tab-item" onclick="switchTab('miniapps')"><span class="tab-icon">🧩</span><span class="tab-label light">Mini-Apps</span></button>
     <button class="tab-item active" onclick="switchTab('profile')"><span class="tab-icon">👤</span><span class="tab-label light">Profile</span></button>
   </div></div>
 </div>
@@ -2476,9 +2471,9 @@ function renderMealsApp(){
 /* ═══ Tab Nav ═══ */
 function switchTab(t){
   if(t==='home')goTo('home');
-  else if(t==='life'){renderLifeGrid();goTo('life-grid');}
+  else if(t==='miniapps'||t==='life'){renderLifeGrid();goTo('life-grid');}
   else if(t==='discover'){buildDiscoverGrid();goTo('discover');}
-  else if(t==='create'){goTo('discover');} /* Create tab — placeholder, goes to Discover for now */
+  else if(t==='create'){goTo('discover');}
   else if(t==='chats'){
     var ct=document.getElementById('chats-temp');if(ct)ct.textContent=bondTemp.toFixed(1)+'°C';
     goTo('chats-list');
@@ -2645,7 +2640,7 @@ function jumpToEdge(type) {
       es.innerHTML = '<div class="empty-state-icon">💬</div>' +
         '<div class="empty-state-title">No chats yet</div>' +
         '<div class="empty-state-body">Start a conversation with a character and they\'ll appear here.</div>' +
-        '<div class="empty-state-cta"><button class="btn-pill" onclick="switchTab(\'discover\')">Find a character</button></div>';
+        '<div class="empty-state-cta"><button class="btn-pill" onclick="switchTab(\'profile\')">Find a character</button></div>';
       var tabBar = document.getElementById('tab-bar-chats');
       tabBar.parentNode.insertBefore(es, tabBar);
     } else {
