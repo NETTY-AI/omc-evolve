@@ -1,5 +1,8 @@
 #!/bin/bash
-# sync-ssot.sh — SSOT 문서를 netty-datacenter에서 ohmyc-evolve로 싱크
+# sync-ssot.sh — SSOT 문서를 ohmyc-evolve(원본)에서 netty-datacenter로 싱크
+#
+# ohmyc-evolve/docs/ 가 원본(SSOT)
+# netty-datacenter/omc/ 는 참조 복사본
 #
 # 사용법: ./scripts/sync-ssot.sh [datacenter-path]
 # 기본: $HOME/_P/company/netty
@@ -8,21 +11,19 @@ set -euo pipefail
 
 DATACENTER="${1:-$HOME/_P/company/netty}"
 OMC="$DATACENTER/07_사업운영/프로젝트/omc"
-TARGET="$(dirname "$0")/../docs/ssot"
+SOURCE="$(cd "$(dirname "$0")/.." && pwd)/docs"
 
-echo "📄 Syncing SSOT documents..."
-echo "   Source: $OMC"
-echo "   Target: $TARGET"
+echo "📄 Syncing SSOT: ohmyc-evolve → netty-datacenter"
+echo "   Source (SSOT): $SOURCE"
+echo "   Target (copy): $OMC"
 
-cp "$OMC/IDENTITY.md" "$TARGET/"
-cp "$OMC/UX.md" "$TARGET/"
-cp "$OMC/CHARACTER-AGENT-SPEC.md" "$TARGET/"
-cp "$OMC/브랜드/VI.md" "$TARGET/"
-cp "$OMC/설계/FLOWS.md" "$TARGET/"
-cp "$OMC/GLOSSARY.md" "$TARGET/" 2>/dev/null || true
+cp "$SOURCE/IDENTITY.md" "$OMC/"
+cp "$SOURCE/UX.md" "$OMC/"
+cp "$SOURCE/CHARACTER-AGENT-SPEC.md" "$OMC/"
+cp "$SOURCE/VI.md" "$OMC/브랜드/"
+cp "$SOURCE/FLOWS.md" "$OMC/설계/"
+cp "$SOURCE/GLOSSARY.md" "$OMC/" 2>/dev/null || true
 
-# Update sync timestamp
-sed -i '' "s/^20.*$/$(date -u +%Y-%m-%dT%H:%M:%S%z)/" "$TARGET/README.md" 2>/dev/null || true
-
-echo "✅ Synced $(ls "$TARGET"/*.md | wc -l | tr -d ' ') documents"
-echo "   Last sync: $(date)"
+echo "✅ Synced $(ls "$SOURCE"/{IDENTITY,UX,CHARACTER-AGENT-SPEC,VI,FLOWS,GLOSSARY}.md 2>/dev/null | wc -l | tr -d ' ') documents"
+echo "   Direction: ohmyc-evolve (원본) → netty-datacenter (복사본)"
+echo "   Time: $(date)"
