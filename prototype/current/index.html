@@ -578,22 +578,41 @@ body {
 .moon { width:36px; height:36px; border-radius:50%; background:radial-gradient(circle at 35% 35%,#FFF8DC,#F0E68C); box-shadow:0 0 16px rgba(240,230,140,0.2); }
 .sun { width:44px; height:44px; border-radius:50%; background:radial-gradient(circle at 40% 40%,#FFF8DC,#FFD700); box-shadow:0 0 24px rgba(255,215,0,0.3); }
 
-/* ═══ Tab Bar (Liquid Glass — 5 items per VI) ═══ */
-.tab-bar {
-  position:absolute; bottom:0; left:0; width:100%;
-  height:80px; background:var(--glass-bg); backdrop-filter:var(--glass-blur);
-  border-top:1px solid var(--separator);
-  display:flex; align-items:flex-start; justify-content:space-around;
-  padding-top:var(--space-sm); z-index:20;
+/* ═══ Tab Bar (Floating Liquid Glass — Cycle 2) ═══ */
+.tab-bar-container {
+  position:absolute; bottom:30px; left:20px; right:20px;
+  display:flex; justify-content:center; z-index:20; pointer-events:none;
 }
-.tab-bar.dark { background:rgba(20,20,30,0.8); border-top-color:rgba(255,255,255,0.06); }
+.tab-bar {
+  pointer-events:auto;
+  background:var(--glass-bg); backdrop-filter:var(--glass-blur);
+  border:0.5px solid var(--glass-border); border-radius:32px;
+  display:flex; justify-content:space-between; align-items:center;
+  padding:8px 16px; width:100%; box-shadow:0 8px 24px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.06);
+}
+.tab-bar.dark { background:var(--glass-bg-dark); border-color:var(--glass-border-dark); }
 .tab-item {
-  display:flex; flex-direction:column; align-items:center; gap:3px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
   cursor:pointer; border:none; background:none;
-  font-family:var(--font-system); position:relative; padding:0 2px;
+  font-family:var(--font-system); position:relative;
+  width:48px; height:48px; color:var(--label-tertiary);
 }
 .tab-item:active { transform:scale(0.92); }
-.tab-icon { font-size:20px; line-height:1; }
+.tab-item.active { color:var(--tint); }
+.tab-item.active::before {
+  content:''; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%);
+  width:48px; height:48px; background:rgba(255,133,82,0.1); border-radius:24px; z-index:-1;
+}
+.tab-icon { font-size:22px; line-height:1; opacity:0.6; transition:0.2s; }
+.tab-item.active .tab-icon { opacity:1; }
+.tab-item.create-btn { color:#FFF; }
+.tab-item.create-btn .tab-icon { opacity:1; }
+.tab-item.create-btn::before {
+  content:''; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%);
+  width:42px; height:42px; background:var(--tint); border-radius:50%; z-index:-1;
+  box-shadow:0 4px 12px rgba(255,133,82,0.3);
+}
+.tab-label { display:none; }
 .tab-label { font-size:10px; font-weight:500; }
 .tab-label.light { color:var(--label-tertiary); }
 .tab-label.dark { color:rgba(255,255,255,0.35); }
@@ -1249,9 +1268,9 @@ body {
   <div class="tab-bar dark" id="tab-bar">
     <button class="tab-item active" onclick="switchTab('home')"><span class="tab-icon">🏠</span><span class="tab-label dark">Home</span></button>
     <button class="tab-item" onclick="switchTab('discover')"><span class="tab-icon">🔍</span><span class="tab-label dark">Discover</span></button>
-    <button class="tab-item" onclick="switchTab('create')"><span class="tab-icon">✏️</span><span class="tab-label dark">Create</span></button>
-    <button class="tab-item" onclick="switchTab('chats')"><span class="tab-icon">💬</span><span class="tab-label dark">Chats</span></button>
-    <button class="tab-item" onclick="switchTab('profile')"><span class="tab-icon">👤</span><span class="tab-label dark">Profile</span></button>
+    <button class="tab-item create-btn" onclick="switchTab('create')"><span class="tab-icon">✏️</span><span class="tab-label dark">Create</span></button>
+    <button class="tab-item" onclick="switchTab('chats')"><span class="tab-icon">💬</span><span class="tab-label light">Chats</span></button><span class="tab-icon">💬</span><span class="tab-label dark">Chats</span></button>
+    <button class="tab-item" onclick="switchTab('profile')"><span class="tab-icon">👤</span><span class="tab-label light">Profile</span></button><span class="tab-icon">👤</span><span class="tab-label dark">Profile</span></button>
   </div>
 </div>
 
@@ -1332,10 +1351,10 @@ body {
   </div>
   <div class="life-grid" id="life-grid-cards"></div>
   <div style="height:80px"></div>
-  <div class="tab-bar" id="tab-bar-life">
+  <div class="tab-bar-container"><div class="tab-bar" id="tab-bar-life">
     <button class="tab-item" onclick="switchTab('home')"><span class="tab-icon">🏠</span><span class="tab-label light">Home</span></button>
     <button class="tab-item active" onclick="switchTab('discover')"><span class="tab-icon">🔍</span><span class="tab-label light">Discover</span></button>
-    <button class="tab-item" onclick="switchTab('create')"><span class="tab-icon">✏️</span><span class="tab-label light">Create</span></button>
+    <button class="tab-item create-btn" onclick="switchTab('create')"><span class="tab-icon">✏️</span><span class="tab-label light">Create</span></button>
     <button class="tab-item" onclick="switchTab('chats')"><span class="tab-icon">💬</span><span class="tab-label light">Chats</span></button>
     <button class="tab-item" onclick="switchTab('profile')"><span class="tab-icon">👤</span><span class="tab-label light">Profile</span></button>
   </div>
@@ -1413,10 +1432,10 @@ body {
   <!-- 2-col Card Grid -->
   <div class="discover-card-grid" id="discover-card-grid"></div>
   <div style="height:20px"></div>
-  <div class="tab-bar" id="tab-bar-discover">
+  <div class="tab-bar-container"><div class="tab-bar" id="tab-bar-discover">
     <button class="tab-item" onclick="switchTab('home')"><span class="tab-icon">🏠</span><span class="tab-label light">Home</span></button>
     <button class="tab-item active" onclick="switchTab('discover')"><span class="tab-icon">🔍</span><span class="tab-label light">Discover</span></button>
-    <button class="tab-item" onclick="switchTab('create')"><span class="tab-icon">✏️</span><span class="tab-label light">Create</span></button>
+    <button class="tab-item create-btn" onclick="switchTab('create')"><span class="tab-icon">✏️</span><span class="tab-label light">Create</span></button>
     <button class="tab-item" onclick="switchTab('chats')"><span class="tab-icon">💬</span><span class="tab-label light">Chats</span></button>
     <button class="tab-item" onclick="switchTab('profile')"><span class="tab-icon">👤</span><span class="tab-label light">Profile</span></button>
   </div>
@@ -1520,7 +1539,7 @@ body {
   </div>
   <button class="chats-find-more" onclick="switchTab('discover')">Find another character →</button>
   <div style="height:80px"></div>
-  <div class="tab-bar" id="tab-bar-chats">
+  <div class="tab-bar-container"><div class="tab-bar" id="tab-bar-chats">
     <button class="tab-item" onclick="switchTab('home')"><span class="tab-icon">🏠</span><span class="tab-label light">Home</span></button>
     <button class="tab-item" onclick="switchTab('discover')"><span class="tab-icon">🔍</span><span class="tab-label light">Discover</span></button>
     <button class="tab-item active" onclick="switchTab('chats')"><span class="tab-icon">💬</span><span class="tab-label light">Chats</span></button>
@@ -1579,10 +1598,10 @@ body {
       </div>
     </div>
   </div>
-  <div class="tab-bar" id="tab-bar-profile">
+  <div class="tab-bar-container"><div class="tab-bar" id="tab-bar-profile">
     <button class="tab-item" onclick="switchTab('home')"><span class="tab-icon">🏠</span><span class="tab-label light">Home</span></button>
     <button class="tab-item" onclick="switchTab('discover')"><span class="tab-icon">🔍</span><span class="tab-label light">Discover</span></button>
-    <button class="tab-item" onclick="switchTab('create')"><span class="tab-icon">✏️</span><span class="tab-label light">Create</span></button>
+    <button class="tab-item create-btn" onclick="switchTab('create')"><span class="tab-icon">✏️</span><span class="tab-label light">Create</span></button>
     <button class="tab-item" onclick="switchTab('chats')"><span class="tab-icon">💬</span><span class="tab-label light">Chats</span></button>
     <button class="tab-item active" onclick="switchTab('profile')"><span class="tab-icon">👤</span><span class="tab-label light">Profile</span></button>
   </div>
