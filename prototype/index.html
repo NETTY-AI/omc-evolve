@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ohmyc-evolve</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --tint: #FF8552;
+      --tint-bright: #FFA47A;
+      --tint-soft: #FFF4EE;
+      --label: #1D1D1F;
+      --label-secondary: rgba(60, 60, 67, 0.6);
+      --label-tertiary: rgba(60, 60, 67, 0.3);
+      --bg: #F5F5F7;
+      --card: #FFFFFF;
+      --separator: rgba(60, 60, 67, 0.12);
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-full: 9999px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --label: #F5F5F7;
+        --label-secondary: rgba(235, 235, 245, 0.6);
+        --label-tertiary: rgba(235, 235, 245, 0.3);
+        --bg: #000000;
+        --card: #1C1C1E;
+        --separator: rgba(84, 84, 88, 0.36);
+      }
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--label);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    .container { max-width: 800px; margin: 0 auto; padding: 48px 20px; }
+
+    /* Header */
+    .header { margin-bottom: 40px; }
+    .wordmark {
+      font-family: 'Plus Jakarta Sans', system-ui;
+      font-size: 28px; font-weight: 800;
+      letter-spacing: -0.04em;
+      margin-bottom: 4px;
+    }
+    .wordmark .c { color: var(--tint); }
+    .header-sub { font-size: 15px; color: var(--label-secondary); }
+
+    /* Nav */
+    .nav { display: flex; gap: 8px; margin-bottom: 32px; flex-wrap: wrap; }
+    .nav a {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px;
+      background: var(--card);
+      border: 1px solid var(--separator);
+      border-radius: var(--radius-full);
+      font-size: 13px; font-weight: 600;
+      color: var(--label-secondary);
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+    .nav a:hover { border-color: var(--tint); color: var(--tint); }
+    .nav a.active { background: var(--tint); color: white; border-color: var(--tint); }
+
+    /* Section */
+    .section { margin-bottom: 32px; }
+    .section-title {
+      font-size: 12px; font-weight: 600;
+      color: var(--label-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 12px;
+      padding-left: 4px;
+    }
+
+    /* Cards */
+    .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 600px) { .card-grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      text-decoration: none;
+      color: var(--label);
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+      display: flex; flex-direction: column;
+    }
+    .card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+    .card-icon { font-size: 32px; margin-bottom: 12px; }
+    .card-title { font-size: 17px; font-weight: 600; margin-bottom: 4px; }
+    .card-desc { font-size: 13px; color: var(--label-secondary); line-height: 1.5; }
+    .card-badge {
+      display: inline-flex; align-items: center;
+      margin-top: 12px;
+      padding: 3px 10px;
+      background: var(--tint-soft);
+      color: var(--tint);
+      border-radius: var(--radius-full);
+      font-size: 11px; font-weight: 600;
+      align-self: flex-start;
+    }
+
+    /* Version List */
+    .version-list { list-style: none; }
+    .version-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px;
+      background: var(--card);
+      border-bottom: 1px solid var(--separator);
+      text-decoration: none; color: var(--label);
+      transition: background 0.1s;
+    }
+    .version-item:first-child { border-radius: var(--radius-md) var(--radius-md) 0 0; }
+    .version-item:last-child { border-bottom: none; border-radius: 0 0 var(--radius-md) var(--radius-md); }
+    .version-item:only-child { border-radius: var(--radius-md); }
+    .version-item:hover { background: var(--tint-soft); }
+    .version-name { font-size: 15px; font-weight: 600; }
+    .version-meta { font-size: 12px; color: var(--label-tertiary); margin-top: 2px; }
+    .version-link { font-size: 13px; color: var(--tint); font-weight: 500; }
+
+    /* Status */
+    .status-bar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 12px 16px;
+      background: var(--card);
+      border-radius: var(--radius-md);
+      margin-bottom: 24px;
+      font-size: 13px; color: var(--label-secondary);
+    }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .status-dot.active { background: #34C759; }
+    .status-dot.idle { background: var(--label-tertiary); }
+
+    .footer {
+      margin-top: 48px; padding-top: 24px;
+      border-top: 1px solid var(--separator);
+      font-size: 12px; color: var(--label-tertiary);
+      display: flex; justify-content: space-between;
+    }
+    .footer a { color: var(--tint); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="wordmark">ohmy<span class="c">c</span>-evolve</div>
+      <p class="header-sub">프로토타입 자가 진화 시스템</p>
+    </div>
+
+    <!-- Status -->
+    <div class="status-bar" id="status">
+      <span class="status-dot idle"></span>
+      <span>Loading...</span>
+    </div>
+
+    <!-- Quick Nav -->
+    <nav class="nav">
+      <a href="current/" class="active">📱 Latest Prototype</a>
+      <a href="review.html">📊 Review Portal</a>
+      <a href="https://github.com/NETTY-AI/ohmyc-evolve" target="_blank">🔗 GitHub</a>
+    </nav>
+
+    <!-- Main Entry Points -->
+    <div class="section">
+      <div class="section-title">Entry Points</div>
+      <div class="card-grid">
+        <a class="card" href="current/">
+          <div class="card-icon">📱</div>
+          <div class="card-title">Latest Prototype</div>
+          <div class="card-desc">현재 최신 빌드. 항상 가장 최근 이터레이션을 반영.</div>
+          <div class="card-badge" id="current-version">v0.1.0</div>
+        </a>
+        <a class="card" href="review.html">
+          <div class="card-icon">📊</div>
+          <div class="card-title">Review Portal</div>
+          <div class="card-desc">iPhone 프레임 프리뷰 + 자동 채점 + 사람 피드백 폼.</div>
+          <div class="card-badge">평가 & 피드백</div>
+        </a>
+      </div>
+    </div>
+
+    <!-- Prototypes -->
+    <div class="section">
+      <div class="section-title">Prototypes</div>
+      <div class="card-grid">
+        <a class="card" href="current/">
+          <div class="card-icon">👤</div>
+          <div class="card-title">User Flow</div>
+          <div class="card-desc">온보딩 → 캐릭터 선택 → 대화 → 홈 → Discover</div>
+        </a>
+        <a class="card" id="creator-card" style="opacity:0.4; pointer-events:none;">
+          <div class="card-icon">🎨</div>
+          <div class="card-title">Creator Flow</div>
+          <div class="card-desc">캐릭터 생성 → Soul Editor → 테스트 → 퍼블리시</div>
+          <div class="card-badge" style="background:var(--bg); color:var(--label-tertiary);">Coming Soon</div>
+        </a>
+      </div>
+    </div>
+
+    <!-- Version History -->
+    <div class="section">
+      <div class="section-title">Version History</div>
+      <div id="version-list">
+        <a class="version-item" href="versions/v0.1.0/">
+          <div>
+            <div class="version-name">v0.1.0</div>
+            <div class="version-meta">Baseline — 기존 prototype-v0.1.html</div>
+          </div>
+          <span class="version-link">보기 →</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- SSOT References -->
+    <div class="section">
+      <div class="section-title">SSOT Documents</div>
+      <div class="card-grid">
+        <div class="card" style="cursor:default;">
+          <div class="card-icon">📋</div>
+          <div class="card-title">Checklist</div>
+          <div class="card-desc">L1~L4 평가 기준 27항목. IDENTITY/UX/SPEC/VI에서 추출.</div>
+        </div>
+        <div class="card" style="cursor:default;">
+          <div class="card-icon">📐</div>
+          <div class="card-title">System Design</div>
+          <div class="card-desc">Evaluate → Plan → Build → Review → Publish 루프 설계.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <span>ohmyc-evolve · <a href="https://github.com/NETTY-AI/ohmyc-evolve">NETTY-AI</a></span>
+      <span>SSOT: IDENTITY.md → UX.md → SPEC.md → VI.md</span>
+    </div>
+  </div>
+
+  <script>
+    // Load loop state
+    fetch('loop-state.json')
+      .then(r => r.ok ? r.json() : null)
+      .then(state => {
+        if (!state) return;
+        const statusEl = document.getElementById('status');
+        const versionEl = document.getElementById('current-version');
+        if (state.current_version !== undefined) {
+          const ver = state.current_version === 1 ? 'v0.1.0' : 'v' + state.current_version;
+          if (versionEl) versionEl.textContent = ver;
+        }
+        if (statusEl) {
+          const dot = statusEl.querySelector('.status-dot');
+          const text = statusEl.querySelector('span:last-child');
+          if (state.fidelity_level === 'pending_evaluation') {
+            dot.className = 'status-dot idle';
+            text.textContent = 'Baseline loaded — 첫 Evaluate 대기 중';
+          } else {
+            dot.className = 'status-dot active';
+            text.textContent = state.fidelity_level + ' · v' + state.current_version;
+          }
+        }
+      })
+      .catch(() => {
+        const statusEl = document.getElementById('status');
+        if (statusEl) statusEl.querySelector('span:last-child').textContent = 'Ready';
+      });
+  </script>
+</body>
+</html>

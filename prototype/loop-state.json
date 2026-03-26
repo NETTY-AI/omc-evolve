@@ -1,0 +1,9 @@
+{
+  "current_version": 1,
+  "fidelity_level": "pending_evaluation",
+  "total_iterations": 0,
+  "last_human_feedback": null,
+  "pending_gaps": [],
+  "deploy_url": "https://netty-ai.github.io/ohmyc-evolve/current/",
+  "note": "기존 프로토타입 v0.1 이관 완료. 첫 Evaluate 루프 대기 중."
+}
