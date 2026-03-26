@@ -677,7 +677,7 @@ body {
 .summary-item-text.done { color:var(--label-secondary); }
 
 /* ═══ Flow Navigator ═══ */
-.flow-toggle {
+.flow-toggle { z-index: 9999 !important; 
   position:fixed; right:16px; top:50%; transform:translateY(-50%);
   width:36px; height:36px; border-radius:var(--radius-sm);
   background:var(--label); color:white; border:none;
@@ -686,7 +686,7 @@ body {
   display:flex; align-items:center; justify-content:center;
 }
 .flow-toggle:active { transform:translateY(-50%) scale(0.92); }
-.flow-nav {
+.flow-nav { z-index: 9998 !important; 
   position:fixed; right:16px; top:50%; transform:translateY(-50%);
   background:white; border-radius:var(--radius-md);
   box-shadow:var(--shadow-4); padding:var(--space-md) var(--space-sm);
@@ -1078,7 +1078,7 @@ body {
   .store-card { background: var(--bg-tertiary); }
   .credits-sheet { background: var(--bg-primary); }
   .credits-tier { background: var(--bg-tertiary); }
-  .flow-nav { background: var(--bg-tertiary); color: var(--label); }
+  .flow-nav { z-index: 9998 !important;  background: var(--bg-tertiary); color: var(--label); }
   .flow-nav-item:hover { background: rgba(255,133,82,0.15); }
   .discover-search-input { color: var(--label); }
   .discover-pill { background: var(--bg-secondary); border-color: var(--separator); color: var(--label-secondary); }
@@ -1638,7 +1638,7 @@ body {
 </div><!-- /phone -->
 
 <!-- Flow Navigator -->
-<button class="flow-toggle" id="flow-toggle" onclick="toggleFlowNav()">☰</button>
+<button class="flow-toggle" id="flow-toggle" onclick="toggleFlowNav()" style="z-index: 9999;">☰</button>
 <div class="flow-nav" id="flow-nav">
   <div class="flow-nav-title">Prototype Flow</div>
   <div class="flow-nav-section">1. Onboarding</div>
