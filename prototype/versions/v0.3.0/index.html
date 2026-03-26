@@ -1,0 +1,2475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ohmyc — Core Flow Prototype v0.2.0</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@800&display=swap" rel="stylesheet">
+<style>
+/* ═══ VI Design Tokens (from VI.md v0.3 — Soft Apricot) ═══ */
+:root {
+  /* ── Tint (Soft Apricot — confirmed 2026-03-24) ── */
+  --tint: #FF8552;
+  --tint-bright: #FFA47A;
+  --tint-soft: #FFF4EE;
+
+  /* ── Apple System (Light) ── */
+  --label: #000000;
+  --label-secondary: rgba(60, 60, 67, 0.6);
+  --label-tertiary: rgba(60, 60, 67, 0.3);
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F2F2F7;
+  --bg-tertiary: #FFFFFF;
+  --separator: rgba(60, 60, 67, 0.29);
+  --separator-opaque: #C6C6C8;
+
+  /* ── Apple System Colors ── */
+  --system-green: #34C759;
+  --system-orange: #FF9500;
+  --system-red: #FF3B30;
+
+  /* ── ohmyc Extension ── */
+  --warm-cream: #FBF8F7;
+  --bubble-char: #F0E6E6;
+  --bubble-char-dark: #2C2424;
+
+  /* ── Liquid Glass ── */
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-bg-dark: rgba(30, 30, 30, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.4);
+  --glass-border-dark: rgba(255, 255, 255, 0.08);
+  --glass-blur: blur(40px) saturate(180%);
+  --glass-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+
+  /* ── Shadow Levels ── */
+  --shadow-1: 0 0.5px 2px rgba(0,0,0,0.04);
+  --shadow-2: 0 2px 8px rgba(0,0,0,0.08);
+  --shadow-3: 0 4px 20px rgba(0,0,0,0.12);
+  --shadow-4: 0 8px 40px rgba(0,0,0,0.18);
+
+  /* ── Typography ── */
+  --font-system: 'Inter', -apple-system, 'SF Pro', system-ui, sans-serif;
+  --font-rounded: 'SF Pro Rounded', -apple-system, system-ui, sans-serif;
+  --font-web: 'Inter', 'Pretendard', system-ui, sans-serif;
+  --font-wordmark: 'Plus Jakarta Sans', system-ui, sans-serif;
+
+  /* ── Motion ── */
+  --duration-micro: 150ms;
+  --duration-transition: 300ms;
+  --duration-emphasis: 500ms;
+  --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(.22, 1, .36, 1);
+
+  /* ── Accessibility ── */
+  --motion-ok: 1; /* overridden by prefers-reduced-motion */
+
+  /* ── Spacing (8pt grid, 4pt half) ── */
+  --space-xs: 4px; --space-sm: 8px; --space-md: 12px;
+  --space-base: 16px; --space-lg: 20px; --space-xl: 24px;
+  --space-2xl: 32px; --space-3xl: 40px; --space-4xl: 48px;
+
+  /* ── Radius (Apple continuous corner) ── */
+  --radius-sm: 10px; --radius-md: 14px; --radius-lg: 20px;
+  --radius-xl: 24px; --radius-full: 9999px; --radius-bubble: 20px;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: var(--font-system);
+  background: #E8E8ED;
+  display:flex; align-items:center; justify-content:center;
+  min-height:100vh; color:var(--label);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ═══ Accessibility: Reduced Motion ═══ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .screen {
+    transition: none !important;
+    transform: none !important;
+  }
+  /* Keep alive-dot visible but static */
+  .alive-dot { animation: none !important; opacity: 1; }
+  /* Keep typing dots visible but static */
+  .typing span { animation: none !important; opacity: 0.6; }
+  /* Keep push slideDown but instant */
+  .push-card { animation: none !important; }
+  .msg { animation: none !important; opacity: 1; transform: none !important; }
+  .chat-choices { animation: none !important; opacity: 1; }
+  .memory-pill { animation: none !important; opacity: 1; }
+  .summary-card { animation: none !important; opacity: 1; }
+}
+
+/* ═══ High Contrast: improve label-tertiary readability ═══ */
+@media (forced-colors: active) {
+  :root {
+    --label-tertiary: rgba(60, 60, 67, 0.5);
+    --glass-border: rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* ═══ Phone Frame ═══ */
+.phone {
+  width:390px; height:844px;
+  background: var(--bg-primary);
+  border-radius:44px;
+  box-shadow: 0 0 0 8px #1a1a1a, var(--shadow-4);
+  overflow:hidden; position:relative;
+}
+.notch {
+  position:absolute; top:12px; left:50%; transform:translateX(-50%);
+  width:126px; height:34px; background:#1a1a1a;
+  border-radius:20px; z-index:50;
+}
+
+/* ═══ Screens ═══ */
+.screen {
+  position:absolute; top:0; left:0; width:100%; height:100%;
+  display:flex; flex-direction:column;
+  opacity:0; pointer-events:none;
+  transition: opacity var(--duration-transition) var(--ease-default),
+              transform var(--duration-transition) var(--ease-default);
+  transform:translateY(8px); overflow:hidden;
+}
+.screen.active { opacity:1; pointer-events:auto; transform:translateY(0); }
+
+/* ═══ Splash ═══ */
+#splash { background:var(--bg-primary); align-items:center; justify-content:center; }
+.splash-logo { font-family:var(--font-wordmark); font-size:42px; font-weight:800; letter-spacing:-0.04em; animation:fadeUp 0.8s var(--ease-default) 0.3s both; }
+.splash-logo .c { color:var(--tint); }
+.splash-tagline { font-size:15px; color:var(--label-secondary); margin-top:var(--space-sm); animation:fadeUp 0.8s var(--ease-default) 0.6s both; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+/* ═══ Welcome ═══ */
+#welcome { background:var(--warm-cream); padding:54px var(--space-2xl) var(--space-3xl); justify-content:center; align-items:center; text-align:center; }
+.welcome-character { width:160px; height:200px; margin-bottom:var(--space-2xl); }
+.welcome-title { font-size:28px; font-weight:700; line-height:1.3; margin-bottom:var(--space-sm); letter-spacing:-0.02em; }
+.welcome-sub { font-size:17px; color:var(--label-secondary); line-height:1.5; margin-bottom:var(--space-3xl); }
+
+/* ═══ Buttons ═══ */
+.btn-primary {
+  display:inline-flex; align-items:center; justify-content:center;
+  height:50px; padding:0 var(--space-2xl);
+  background:var(--tint); color:white;
+  font-family:var(--font-system); font-size:17px; font-weight:600;
+  border:none; border-radius:var(--radius-md); cursor:pointer;
+  transition:transform var(--duration-micro), opacity var(--duration-micro);
+}
+.btn-primary:active { transform:scale(0.97); opacity:0.9; }
+.btn-pill {
+  display:inline-flex; align-items:center; justify-content:center;
+  height:44px; padding:0 var(--space-lg);
+  background:var(--tint); color:white;
+  font-family:var(--font-system); font-size:15px; font-weight:600;
+  border:none; border-radius:var(--radius-full); cursor:pointer;
+  transition:transform var(--duration-micro);
+}
+.btn-pill:active { transform:scale(0.97); }
+.btn-ghost {
+  display:inline-flex; align-items:center; justify-content:center;
+  height:44px; padding:0 var(--space-lg); background:transparent;
+  color:var(--label-secondary); font-family:var(--font-system);
+  font-size:15px; font-weight:500; border:none; cursor:pointer;
+}
+.btn-ghost:hover { color:var(--tint); }
+
+/* ═══ Questions ═══ */
+.question-screen { background:var(--warm-cream); padding:54px var(--space-base) var(--space-3xl); }
+.q-progress { display:flex; gap:var(--space-sm); margin-top:var(--space-xl); margin-bottom:var(--space-4xl); }
+.q-progress-dot { width:32px; height:4px; border-radius:2px; background:var(--label-tertiary); }
+.q-progress-dot.active { background:var(--tint); }
+.q-label { font-size:13px; font-weight:600; color:var(--label-secondary); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:var(--space-sm); }
+.q-title { font-size:22px; font-weight:700; line-height:1.35; margin-bottom:var(--space-2xl); letter-spacing:-0.01em; }
+.q-options { display:flex; flex-direction:column; gap:var(--space-md); }
+.q-option {
+  display:flex; align-items:center; gap:var(--space-base);
+  padding:var(--space-base) var(--space-base);
+  background:var(--bg-tertiary); border:2px solid transparent;
+  border-radius:var(--radius-md); cursor:pointer;
+  transition:border-color var(--duration-micro), transform var(--duration-micro);
+  box-shadow:var(--shadow-1);
+}
+.q-option:active { transform:scale(0.98); }
+.q-option:hover { border-color:var(--tint); }
+.q-option-icon { width:44px; height:44px; border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
+.q-option-text { font-size:17px; font-weight:600; }
+.q-option-sub { font-size:15px; color:var(--label-secondary); margin-top:2px; }
+
+/* ═══ Character Select (Hero Layout) ═══ */
+#characters { background:var(--warm-cream); padding:54px var(--space-base) var(--space-3xl); }
+.char-title { font-size:22px; font-weight:700; text-align:center; margin-top:var(--space-xl); margin-bottom:var(--space-xs); }
+.char-sub { font-size:15px; color:var(--label-secondary); text-align:center; margin-bottom:var(--space-lg); }
+/* Hero card (Lumi) */
+.char-hero {
+  position:relative; width:220px; height:330px; margin:0 auto var(--space-lg);
+  border-radius:var(--radius-lg); overflow:hidden;
+  box-shadow:var(--shadow-3); cursor:pointer;
+  transition:transform var(--duration-micro);
+}
+.char-hero:active { transform:scale(0.97); }
+.char-hero-art { width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:linear-gradient(180deg,#FFF5EE 0%,#FDDCC8 60%,#E8BFA8 100%); }
+.char-hero-overlay {
+  position:absolute; bottom:0; left:0; width:100%;
+  padding:var(--space-lg) var(--space-base) var(--space-base);
+  background:linear-gradient(transparent 0%, rgba(0,0,0,0.55) 100%);
+  color:white;
+}
+.char-hero-name { font-size:20px; font-weight:700; margin-bottom:2px; }
+.char-hero-desc { font-size:13px; opacity:0.85; margin-bottom:var(--space-sm); }
+.char-hero-meta { display:flex; align-items:center; gap:var(--space-sm); font-size:12px; opacity:0.75; }
+.char-hero-tags { display:flex; gap:var(--space-xs); }
+.char-hero-tag {
+  font-size:11px; font-weight:600; padding:3px var(--space-sm);
+  border-radius:var(--radius-full);
+  background:rgba(255,255,255,0.2); backdrop-filter:blur(8px);
+  color:white;
+}
+/* Locked row */
+.char-locked-row { display:flex; gap:var(--space-md); justify-content:center; }
+.char-locked-card {
+  width:100px; height:140px; background:var(--bg-tertiary);
+  border-radius:var(--radius-md); position:relative; overflow:hidden;
+  box-shadow:var(--shadow-1);
+}
+.char-locked-art { width:100%; height:100%; display:flex; align-items:center; justify-content:center; filter:blur(6px); opacity:0.4; }
+.char-locked-badge {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  background:var(--glass-bg); backdrop-filter:var(--glass-blur);
+  padding:5px var(--space-sm); border-radius:var(--space-sm);
+  font-size:10px; font-weight:600; color:var(--label-secondary); white-space:nowrap;
+  border:1px solid var(--glass-border);
+}
+.char-select-hint { text-align:center; margin-top:var(--space-lg); font-size:13px; color:var(--label-tertiary); }
+/* Alive dot */
+.alive-dot {
+  display:inline-block; width:8px; height:8px; border-radius:50%;
+  background:var(--system-green); margin-right:var(--space-xs);
+  animation: breathe 3s ease-in-out infinite;
+}
+@keyframes breathe { 0%,100%{transform:scale(1);opacity:0.6} 50%{transform:scale(1.15);opacity:1} }
+
+/* ═══ Chat (shared) ═══ */
+.chat-screen { background:var(--bg-primary); flex-direction:column; }
+/* Liquid Glass header */
+.chat-header {
+  padding:54px var(--space-base) var(--space-md);
+  display:flex; align-items:center; gap:var(--space-md);
+  background:var(--glass-bg); backdrop-filter:var(--glass-blur);
+  border-bottom:1px solid var(--separator); z-index:5;
+}
+.chat-header-avatar {
+  width:38px; height:38px; border-radius:50%;
+  background:var(--bg-secondary); display:flex; align-items:center; justify-content:center; overflow:hidden;
+  position:relative;
+}
+.chat-back {
+  width:32px; height:32px; border:none; background:none; cursor:pointer;
+  font-size:20px; color:var(--tint); display:flex; align-items:center; justify-content:center;
+  margin-right:calc(-1 * var(--space-xs)); flex-shrink:0;
+}
+.chat-back:active { opacity:0.6; }
+.chat-header-name { font-size:17px; font-weight:600; }
+.chat-header-status { font-size:13px; color:var(--system-green); font-weight:500; display:flex; align-items:center; gap:var(--space-xs); }
+.chat-messages {
+  flex:1; overflow-y:auto; padding:var(--space-base);
+  display:flex; flex-direction:column; gap:6px; scroll-behavior:smooth;
+  background:var(--warm-cream);
+}
+.msg { max-width:78%; padding:var(--space-md) var(--space-base); font-size:17px; line-height:1.47; animation:msgIn 0.3s var(--ease-default) both; }
+@keyframes msgIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+.msg.bot {
+  align-self:flex-start; background:var(--bubble-char);
+  border-radius:4px var(--radius-bubble) var(--radius-bubble) var(--radius-bubble);
+  color:var(--label);
+}
+.msg.user {
+  align-self:flex-end; background:var(--tint);
+  border-radius:var(--radius-bubble) 4px var(--radius-bubble) var(--radius-bubble);
+  color:white; font-weight:500;
+}
+.typing {
+  align-self:flex-start; display:flex; gap:5px; padding:14px 18px;
+  background:var(--bubble-char);
+  border-radius:4px var(--radius-bubble) var(--radius-bubble) var(--radius-bubble);
+}
+.typing span { width:7px; height:7px; border-radius:50%; background:var(--label-tertiary); animation:typingDot 1.2s infinite; }
+.typing span:nth-child(2) { animation-delay:0.15s; }
+.typing span:nth-child(3) { animation-delay:0.3s; }
+@keyframes typingDot { 0%,60%,100%{transform:translateY(0);opacity:0.4} 30%{transform:translateY(-5px);opacity:1} }
+.chat-input-area { padding:var(--space-sm) var(--space-base) 34px; border-top:1px solid var(--separator); background:var(--bg-primary); }
+.chat-input-wrap { display:flex; gap:var(--space-sm); align-items:center; }
+.chat-input {
+  flex:1; height:44px; padding:0 var(--space-base);
+  border:1.5px solid var(--separator); border-radius:var(--radius-full);
+  font-family:var(--font-system); font-size:17px; background:var(--bg-primary); outline:none;
+}
+.chat-input:focus { border-color:var(--tint); }
+.chat-input::placeholder { color:var(--label-tertiary); }
+.chat-send {
+  width:36px; height:36px; border:none; border-radius:50%;
+  background:var(--tint); color:white; font-size:16px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.chat-send:active { transform:scale(0.92); }
+.chat-choices { display:flex; flex-wrap:wrap; gap:var(--space-sm); padding:var(--space-xs) 0 var(--space-sm); animation:msgIn 0.3s var(--ease-default) both; }
+.chat-choice {
+  padding:var(--space-sm) var(--space-base); background:var(--bg-primary);
+  border:1.5px solid var(--tint); border-radius:var(--radius-full);
+  font-family:var(--font-system); font-size:15px; font-weight:600;
+  color:var(--tint); cursor:pointer;
+  transition:background var(--duration-micro), color var(--duration-micro);
+}
+.chat-choice:hover { background:var(--tint); color:white; }
+.chat-choice:active { transform:scale(0.95); }
+
+/* ═══ Closing ═══ */
+#closing { background:var(--warm-cream); align-items:center; justify-content:center; text-align:center; padding:54px var(--space-2xl) var(--space-3xl); }
+.closing-character { width:120px; height:150px; margin-bottom:var(--space-xl); animation:gentleBounce 2s ease-in-out infinite; }
+@keyframes gentleBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+.closing-msg { font-size:22px; font-weight:700; line-height:1.4; margin-bottom:var(--space-sm); }
+.closing-sub { font-size:15px; color:var(--label-secondary); margin-bottom:var(--space-2xl); }
+.closing-tagline { font-size:15px; color:var(--label-tertiary); font-style:italic; }
+.closing-wordmark { font-family:var(--font-wordmark); font-size:18px; font-weight:800; color:var(--label-tertiary); letter-spacing:-0.04em; }
+.closing-wordmark .c { color:var(--tint); }
+
+/* ═══ Home (Character Room) ═══ */
+#home { position:relative; }
+.home-bg { position:absolute; top:0; left:0; width:100%; height:100%; transition:background 1s var(--ease-default); }
+.home-bg.evening { background:linear-gradient(180deg,#111118 0%,#1C1C2E 40%,#2A2840 100%); }
+.home-bg.morning { background:linear-gradient(180deg,#FFF0E0 0%,#FFE0B8 40%,#FFF5E6 100%); }
+.home-bg.daytime { background:linear-gradient(180deg,#FFF5E6 0%,var(--warm-cream) 100%); }
+.home-bg.afternoon { background:linear-gradient(180deg,#FFF0DD 0%,#FFE8CC 40%,var(--warm-cream) 100%); }
+.home-bg.night2 { background:linear-gradient(180deg,#111118 0%,#1C1C2E 40%,#2A2840 100%); }
+.home-content {
+  position:relative; z-index:2; flex:1;
+  display:flex; flex-direction:column; align-items:center;
+  padding:70px var(--space-2xl) 90px; text-align:center; overflow-y:auto;
+}
+.home-time { font-size:48px; font-weight:300; margin-bottom:var(--space-xs); letter-spacing:-1px; }
+.home-date { font-size:15px; font-weight:500; margin-bottom:var(--space-2xl); }
+.home-time.dark { color:rgba(255,255,255,0.9); }
+.home-date.dark { color:rgba(255,255,255,0.4); }
+.home-time.light { color:#2D2226; }
+.home-date.light { color:#6B5A60; }
+/* Temperature System */
+.temp-glow {
+  position:absolute; width:180px; height:180px; border-radius:50%;
+  top:50%; left:50%; transform:translate(-50%,-50%);
+  background:radial-gradient(circle, rgba(255,180,120,var(--temp-glow-opacity,0)) 0%, transparent 70%);
+  transition: opacity 1.5s ease, transform 1.5s ease;
+  pointer-events:none; z-index:0;
+}
+.temp-glow.pulse {
+  animation: tempPulse 1.5s ease-out;
+}
+@keyframes tempPulse {
+  0% { transform:translate(-50%,-50%) scale(1); filter:brightness(1); }
+  40% { transform:translate(-50%,-50%) scale(1.4); filter:brightness(1.3); }
+  100% { transform:translate(-50%,-50%) scale(1); filter:brightness(1); }
+}
+.temp-pill {
+  display:inline-flex; align-items:center; gap:var(--space-xs);
+  padding:var(--space-xs) var(--space-md);
+  background:var(--glass-bg); backdrop-filter:var(--glass-blur);
+  border:1px solid var(--glass-border);
+  border-radius:var(--radius-full);
+  font-size:13px; font-weight:600;
+  margin-top:var(--space-sm);
+  transition:color 0.5s ease;
+  z-index:3; position:relative;
+}
+.temp-pill.dark { background:rgba(255,255,255,0.12); border-color:rgba(255,255,255,0.15); color:rgba(255,255,255,0.7); }
+.temp-pill.light { color:var(--label-secondary); }
+.temp-pill-dot {
+  width:6px; height:6px; border-radius:50%;
+  transition:background 0.5s ease;
+}
+.temp-change {
+  font-size:12px; font-weight:600; color:var(--system-green);
+  margin-left:var(--space-xs);
+  animation:tempChangeIn 0.6s var(--ease-spring) both;
+}
+@keyframes tempChangeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+
+.home-character-wrap { width:140px; height:175px; margin-bottom:var(--space-base); position:relative; }
+.home-character-wrap.evening { animation:gentleFloat 3s ease-in-out infinite; }
+.home-character-wrap.morning { animation:gentleBounce 1.5s ease-in-out infinite; }
+.home-character-wrap.daytime { animation:gentleFloat 4s ease-in-out infinite; }
+@keyframes gentleFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
+.home-status { font-size:15px; font-weight:500; margin-bottom:var(--space-sm); max-width:260px; }
+.home-status.dark { color:rgba(255,255,255,0.6); }
+.home-status.light { color:#6B5A60; }
+.home-bubble {
+  background:var(--glass-bg); backdrop-filter:var(--glass-blur);
+  border:1px solid var(--glass-border);
+  border-radius:var(--radius-lg); padding:var(--space-md) var(--space-base);
+  font-size:15px; line-height:1.5; color:var(--label);
+  box-shadow:var(--shadow-3); max-width:260px; margin-top:var(--space-sm);
+  animation:fadeUp 0.5s var(--ease-default) both; position:relative;
+}
+.home-bubble .bubble-name { font-weight:600; color:var(--tint); font-size:12px; margin-bottom:var(--space-xs); display:flex; align-items:center; gap:var(--space-xs); }
+.home-skip { margin-top:auto; flex-shrink:0; }
+
+/* ═══ Mini-App Widgets ═══ */
+.widget-grid {
+  display:grid; grid-template-columns:1fr 1fr; gap:var(--space-sm);
+  width:100%; max-width:300px; margin-top:var(--space-base);
+  z-index:3; position:relative;
+}
+.widget {
+  background:var(--glass-bg); backdrop-filter:var(--glass-blur);
+  border:1px solid var(--glass-border);
+  border-radius:var(--radius-md); padding:var(--space-md);
+  cursor:pointer; transition:transform var(--duration-micro);
+  text-align:left; min-height:72px;
+}
+.widget:active { transform:scale(0.96); }
+.widget.dark { background:rgba(255,255,255,0.08); border-color:rgba(255,255,255,0.1); }
+.widget-icon { font-size:18px; margin-bottom:var(--space-xs); }
+.widget-title { font-size:12px; font-weight:600; margin-bottom:2px; }
+.widget-title.dark { color:rgba(255,255,255,0.7); }
+.widget-title.light { color:var(--label); }
+.widget-value { font-size:11px; line-height:1.4; }
+.widget-value.dark { color:rgba(255,255,255,0.4); }
+.widget-value.light { color:var(--label-secondary); }
+.widget.empty { opacity:0.4; cursor:default; }
+.widget.empty:active { transform:none; }
+.widget-empty-label { font-size:10px; color:var(--label-tertiary); font-style:italic; }
+
+/* ═══ Mini-App Full View ═══ */
+.miniapp { background:var(--bg-primary); padding:54px var(--space-base) 40px; overflow-y:auto; }
+.miniapp-header {
+  display:flex; align-items:center; gap:var(--space-md);
+  margin-top:var(--space-base); margin-bottom:var(--space-xl);
+}
+.miniapp-back {
+  width:32px; height:32px; border:none; background:none; cursor:pointer;
+  font-size:20px; color:var(--tint); display:flex; align-items:center; justify-content:center;
+}
+.miniapp-title { font-size:22px; font-weight:700; }
+.miniapp-subtitle { font-size:13px; color:var(--label-tertiary); margin-top:2px; }
+.miniapp-source {
+  display:inline-flex; align-items:center; gap:var(--space-xs);
+  padding:var(--space-xs) var(--space-sm);
+  background:var(--bg-secondary); border-radius:var(--radius-full);
+  font-size:11px; color:var(--label-tertiary); margin-bottom:var(--space-lg);
+}
+.miniapp-section { margin-bottom:var(--space-xl); }
+.miniapp-section-title {
+  font-size:12px; font-weight:600; color:var(--label-tertiary);
+  text-transform:uppercase; letter-spacing:1.5px;
+  margin-bottom:var(--space-md);
+}
+.miniapp-item {
+  display:flex; align-items:flex-start; gap:var(--space-md);
+  padding:var(--space-md) 0;
+  border-bottom:1px solid var(--separator);
+}
+.miniapp-item:last-child { border-bottom:none; }
+.miniapp-item-icon {
+  width:36px; height:36px; border-radius:var(--radius-sm);
+  display:flex; align-items:center; justify-content:center;
+  font-size:16px; flex-shrink:0;
+}
+.miniapp-item-content { flex:1; }
+.miniapp-item-title { font-size:15px; font-weight:600; margin-bottom:2px; }
+.miniapp-item-meta { font-size:13px; color:var(--label-secondary); }
+.miniapp-item.done .miniapp-item-title { color:var(--label-secondary); text-decoration:line-through; }
+.miniapp-empty {
+  text-align:center; padding:var(--space-3xl) var(--space-base);
+  color:var(--label-tertiary); font-size:15px; line-height:1.5;
+}
+
+/* ═══ Life Grid & Store ═══ */
+.life-grid-screen { background:var(--bg-primary); padding:54px var(--space-base) 40px; overflow-y:auto; }
+.life-grid-header { margin-top:var(--space-base); margin-bottom:var(--space-lg); }
+.life-grid-title { font-size:34px; font-weight:700; letter-spacing:-0.02em; }
+.life-grid-sub { font-size:15px; color:var(--label-secondary); margin-top:var(--space-xs); }
+.life-grid { display:grid; grid-template-columns:1fr 1fr; gap:var(--space-md); }
+.life-card {
+  background:var(--bg-tertiary); border-radius:var(--radius-md);
+  padding:var(--space-base); min-height:90px;
+  box-shadow:var(--shadow-1); cursor:pointer;
+  transition:transform var(--duration-micro);
+}
+.life-card:active { transform:scale(0.96); }
+.life-card-icon { font-size:24px; margin-bottom:var(--space-sm); }
+.life-card-name { font-size:15px; font-weight:600; margin-bottom:2px; }
+.life-card-desc { font-size:12px; color:var(--label-secondary); line-height:1.4; }
+.life-card-count { font-size:11px; color:var(--tint); font-weight:600; margin-top:var(--space-xs); }
+.life-card.add {
+  border:2px dashed var(--label-tertiary); background:transparent;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; box-shadow:none;
+}
+.life-card.add .life-card-name { color:var(--label-tertiary); }
+
+/* Store */
+.store-screen { background:var(--bg-primary); padding:54px var(--space-base) 40px; overflow-y:auto; }
+.store-card {
+  display:flex; align-items:center; gap:var(--space-base);
+  padding:var(--space-base); margin-bottom:var(--space-sm);
+  background:var(--bg-tertiary); border-radius:var(--radius-md);
+  box-shadow:var(--shadow-1);
+}
+.store-card-icon {
+  width:48px; height:48px; border-radius:var(--radius-sm);
+  display:flex; align-items:center; justify-content:center;
+  font-size:24px; flex-shrink:0;
+}
+.store-card-info { flex:1; }
+.store-card-name { font-size:15px; font-weight:600; }
+.store-card-desc { font-size:13px; color:var(--label-secondary); line-height:1.4; margin-top:2px; }
+.store-card-tag { font-size:11px; color:var(--label-tertiary); margin-top:var(--space-xs); }
+.store-add-btn {
+  padding:var(--space-sm) var(--space-base);
+  background:var(--tint); color:white;
+  font-family:var(--font-system); font-size:13px; font-weight:600;
+  border:none; border-radius:var(--radius-full); cursor:pointer;
+  flex-shrink:0;
+}
+.store-add-btn:active { transform:scale(0.95); }
+.store-add-btn.added {
+  background:var(--bg-secondary); color:var(--system-green);
+}
+.store-installed { font-size:12px; color:var(--system-green); font-weight:500; flex-shrink:0; display:flex; align-items:center; gap:var(--space-xs); }
+
+/* Decorations */
+.deco { position:absolute; z-index:1; pointer-events:none; }
+.star { width:3px; height:3px; border-radius:50%; background:white; animation:twinkle 2s ease-in-out infinite; }
+@keyframes twinkle { 0%,100%{opacity:0.2} 50%{opacity:0.8} }
+.moon { width:36px; height:36px; border-radius:50%; background:radial-gradient(circle at 35% 35%,#FFF8DC,#F0E68C); box-shadow:0 0 16px rgba(240,230,140,0.2); }
+.sun { width:44px; height:44px; border-radius:50%; background:radial-gradient(circle at 40% 40%,#FFF8DC,#FFD700); box-shadow:0 0 24px rgba(255,215,0,0.3); }
+
+/* ═══ Tab Bar (Liquid Glass — 5 items per VI) ═══ */
+.tab-bar {
+  position:absolute; bottom:0; left:0; width:100%;
+  height:80px; background:var(--glass-bg); backdrop-filter:var(--glass-blur);
+  border-top:1px solid var(--separator);
+  display:flex; align-items:flex-start; justify-content:space-around;
+  padding-top:var(--space-sm); z-index:20;
+}
+.tab-bar.dark { background:rgba(20,20,30,0.8); border-top-color:rgba(255,255,255,0.06); }
+.tab-item {
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  cursor:pointer; border:none; background:none;
+  font-family:var(--font-system); position:relative; padding:0 2px;
+}
+.tab-item:active { transform:scale(0.92); }
+.tab-icon { font-size:20px; line-height:1; }
+.tab-label { font-size:10px; font-weight:500; }
+.tab-label.light { color:var(--label-tertiary); }
+.tab-label.dark { color:rgba(255,255,255,0.35); }
+.tab-item.active .tab-label.light { color:var(--tint); }
+.tab-item.active .tab-label.dark { color:rgba(255,255,255,0.9); }
+.tab-badge { position:absolute; top:-2px; right:-2px; width:8px; height:8px; border-radius:50%; background:var(--tint); display:none; }
+.tab-badge.show { display:block; }
+
+/* ═══ Push Notification ═══ */
+#push-sim { background:linear-gradient(180deg,#000 0%,#111 100%); align-items:center; justify-content:flex-start; padding-top:80px; text-align:center; }
+.push-time { font-size:72px; font-weight:200; color:white; letter-spacing:-2px; }
+.push-date { font-size:17px; color:rgba(255,255,255,0.4); margin-bottom:60px; }
+.push-card {
+  background:rgba(255,255,255,0.1); backdrop-filter:blur(20px) saturate(150%);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:var(--radius-lg); padding:var(--space-base);
+  width:calc(100% - 48px); text-align:left;
+  animation:slideDown 0.5s var(--ease-default) both;
+}
+@keyframes slideDown { from{opacity:0;transform:translateY(-16px)} to{opacity:1;transform:translateY(0)} }
+.push-card-header { display:flex; align-items:center; gap:var(--space-sm); margin-bottom:var(--space-sm); }
+.push-card-icon { width:32px; height:32px; border-radius:var(--space-sm); background:var(--tint); display:flex; align-items:center; justify-content:center; }
+.push-card-icon span { font-family:var(--font-wordmark); font-size:14px; font-weight:800; color:white; }
+.push-card-app { font-size:13px; color:rgba(255,255,255,0.4); }
+.push-card-when { font-size:13px; color:rgba(255,255,255,0.25); margin-left:auto; }
+.push-card-title { font-size:15px; font-weight:600; color:white; margin-bottom:var(--space-xs); }
+.push-card-body { font-size:15px; color:rgba(255,255,255,0.65); line-height:1.45; }
+.push-hint { margin-top:auto; margin-bottom:40px; font-size:13px; color:rgba(255,255,255,0.2); animation:pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:0.3} 50%{opacity:0.7} }
+
+/* ═══ Discover (shared base) ═══ */
+.discover-header { margin-top:var(--space-base); margin-bottom:var(--space-lg); }
+.discover-title { font-size:34px; font-weight:700; margin-bottom:var(--space-xs); letter-spacing:-0.02em; }
+
+/* ═══ Memory Pill ═══ */
+.memory-pill {
+  display:inline-flex; align-items:center; gap:var(--space-xs);
+  padding:var(--space-xs) var(--space-md);
+  background:var(--glass-bg); backdrop-filter:var(--glass-blur);
+  border:1px solid var(--glass-border);
+  border-radius:var(--radius-full);
+  font-size:12px; font-weight:500; color:var(--label-secondary);
+  animation:msgIn 0.4s var(--ease-default) both;
+  align-self:flex-start; margin:var(--space-xs) 0;
+}
+.memory-pill-icon { font-size:13px; }
+
+/* ═══ Summary Card ═══ */
+.summary-card {
+  background:var(--glass-bg); backdrop-filter:var(--glass-blur);
+  border:1px solid var(--glass-border);
+  border-radius:var(--radius-md);
+  padding:var(--space-md) var(--space-base);
+  font-size:15px; line-height:1.6;
+  animation:msgIn 0.3s var(--ease-default) both;
+  align-self:flex-start; max-width:85%;
+  color:var(--label);
+}
+.summary-item { display:flex; align-items:center; gap:var(--space-sm); padding:2px 0; }
+.summary-item-icon { font-size:14px; width:20px; text-align:center; }
+.summary-item-text { font-size:14px; }
+.summary-item-text.done { color:var(--label-secondary); }
+
+/* ═══ Flow Navigator ═══ */
+.flow-toggle {
+  position:fixed; right:16px; top:50%; transform:translateY(-50%);
+  width:36px; height:36px; border-radius:var(--radius-sm);
+  background:var(--label); color:white; border:none;
+  font-size:14px; cursor:pointer; z-index:200;
+  box-shadow:var(--shadow-3);
+  display:flex; align-items:center; justify-content:center;
+}
+.flow-toggle:active { transform:translateY(-50%) scale(0.92); }
+.flow-nav {
+  position:fixed; right:16px; top:50%; transform:translateY(-50%);
+  background:white; border-radius:var(--radius-md);
+  box-shadow:var(--shadow-4); padding:var(--space-md) var(--space-sm);
+  width:200px; z-index:199; display:none; max-height:80vh; overflow-y:auto;
+}
+.flow-nav.open { display:block; }
+.flow-nav-title { font-size:11px; font-weight:700; color:var(--label-tertiary); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:var(--space-sm); padding:0 var(--space-sm); }
+.flow-nav-section { font-size:9px; font-weight:700; color:var(--label-tertiary); text-transform:uppercase; letter-spacing:1px; margin:var(--space-sm) 0 var(--space-xs); padding:0 var(--space-sm); }
+.flow-nav-item {
+  display:flex; align-items:center; gap:var(--space-sm);
+  padding:6px var(--space-sm); border-radius:var(--space-sm); cursor:pointer;
+  font-size:12px; font-weight:500; color:var(--label-secondary);
+  border:none; background:none; width:100%; text-align:left; font-family:var(--font-system);
+}
+.flow-nav-item:hover { background:var(--tint-soft); color:var(--tint); }
+.flow-nav-item.active { background:var(--tint); color:white; font-weight:600; }
+.flow-nav-dot { width:6px; height:6px; border-radius:50%; border:1.5px solid currentColor; flex-shrink:0; }
+.flow-nav-item.active .flow-nav-dot { background:white; border-color:white; }
+
+/* ═══ Profile ═══ */
+.profile-screen { background:var(--bg-primary); padding:54px var(--space-base) 90px; overflow-y:auto; }
+.profile-header { text-align:center; margin-top:var(--space-xl); margin-bottom:var(--space-2xl); }
+.profile-avatar { width:72px; height:72px; border-radius:50%; background:var(--bg-secondary); margin:0 auto var(--space-md); display:flex; align-items:center; justify-content:center; font-size:32px; }
+.profile-name { font-size:22px; font-weight:700; margin-bottom:var(--space-xs); }
+.profile-sub { font-size:15px; color:var(--label-secondary); }
+.profile-section { margin-bottom:var(--space-xl); }
+.profile-section-title { font-size:12px; font-weight:600; color:var(--label-tertiary); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:var(--space-md); }
+.profile-card {
+  background:var(--bg-tertiary); border-radius:var(--radius-md);
+  box-shadow:var(--shadow-1); overflow:hidden;
+}
+.profile-row {
+  display:flex; align-items:center; gap:var(--space-md);
+  padding:var(--space-md) var(--space-base);
+  cursor:pointer; border-bottom:1px solid var(--separator);
+}
+.profile-row:last-child { border-bottom:none; }
+.profile-row:active { background:var(--bg-secondary); }
+.profile-row-icon { font-size:20px; width:28px; text-align:center; }
+.profile-row-label { flex:1; font-size:15px; }
+.profile-row-value { font-size:15px; color:var(--label-secondary); }
+.profile-row-chevron { font-size:14px; color:var(--label-tertiary); }
+
+/* ═══ Discover (Full — Marketplace) ═══ */
+.discover-screen { background:var(--bg-primary); padding:54px var(--space-base) 90px; overflow-y:auto; }
+.discover-search {
+  display:flex; align-items:center; gap:var(--space-sm);
+  padding:var(--space-sm) var(--space-base);
+  background:var(--glass-bg); backdrop-filter:var(--glass-blur);
+  border:1px solid var(--glass-border);
+  border-radius:var(--radius-full);
+  margin-bottom:var(--space-lg);
+}
+.discover-search-icon { font-size:16px; color:var(--label-tertiary); }
+.discover-search-input {
+  flex:1; border:none; background:none; outline:none;
+  font-family:var(--font-system); font-size:15px; color:var(--label);
+}
+.discover-search-input::placeholder { color:var(--label-tertiary); }
+.discover-hero {
+  position:relative; width:100%; aspect-ratio:3/4; max-height:320px;
+  border-radius:var(--radius-lg); overflow:hidden;
+  box-shadow:var(--shadow-3); cursor:pointer; margin-bottom:var(--space-lg);
+  transition:transform var(--duration-micro);
+}
+.discover-hero:active { transform:scale(0.98); }
+.discover-hero-art {
+  width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(180deg,#FFF5EE 0%,#FDDCC8 60%,#E8BFA8 100%);
+}
+.discover-hero-overlay {
+  position:absolute; bottom:0; left:0; width:100%;
+  padding:var(--space-xl) var(--space-base) var(--space-base);
+  background:linear-gradient(transparent 0%, rgba(0,0,0,0.6) 100%);
+  color:white;
+}
+.discover-hero-badge {
+  display:inline-block; padding:3px var(--space-sm);
+  background:var(--tint); border-radius:var(--radius-full);
+  font-size:11px; font-weight:700; color:white;
+  margin-bottom:var(--space-sm);
+}
+.discover-hero-name { font-size:20px; font-weight:600; margin-bottom:2px; }
+.discover-hero-creator { font-size:13px; opacity:0.6; margin-bottom:var(--space-sm); }
+.discover-hero-meta { display:flex; align-items:center; gap:var(--space-sm); font-size:12px; opacity:0.75; }
+.discover-category-pills {
+  display:flex; gap:var(--space-sm); overflow-x:auto; padding-bottom:var(--space-md);
+  margin-bottom:var(--space-lg); scrollbar-width:none; -webkit-overflow-scrolling:touch;
+}
+.discover-category-pills::-webkit-scrollbar { display:none; }
+.discover-pill {
+  padding:var(--space-sm) var(--space-base); border-radius:var(--radius-full);
+  font-family:var(--font-system); font-size:13px; font-weight:600;
+  border:1.5px solid var(--separator); background:var(--bg-primary);
+  color:var(--label-secondary); cursor:pointer; white-space:nowrap;
+  transition:all var(--duration-micro);
+}
+.discover-pill.active { background:var(--tint); color:white; border-color:var(--tint); }
+.discover-pill:active { transform:scale(0.95); }
+.discover-card-grid {
+  display:grid; grid-template-columns:1fr 1fr; gap:var(--space-md);
+}
+.discover-char-card {
+  position:relative; aspect-ratio:2/3; border-radius:var(--radius-lg);
+  overflow:hidden; cursor:pointer; box-shadow:var(--shadow-2);
+  transition:transform var(--duration-micro);
+}
+.discover-char-card:active { transform:scale(0.97); }
+.discover-char-card-art {
+  width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+}
+.discover-char-card-overlay {
+  position:absolute; bottom:0; left:0; width:100%;
+  padding:var(--space-md) var(--space-sm) var(--space-sm);
+  background:linear-gradient(transparent 30%, rgba(0,0,0,0.6) 100%);
+  color:white;
+}
+.discover-char-card-name { font-size:15px; font-weight:600; margin-bottom:1px; }
+.discover-char-card-creator { font-size:11px; opacity:0.6; }
+.discover-char-card-meta { display:flex; align-items:center; gap:var(--space-xs); font-size:10px; opacity:0.7; margin-top:var(--space-xs); }
+.discover-char-card .companion-badge {
+  position:absolute; top:var(--space-sm); left:var(--space-sm);
+  padding:2px var(--space-sm); background:var(--tint); border-radius:var(--radius-full);
+  font-size:9px; font-weight:700; color:white;
+}
+
+/* ═══ Character Profile ═══ */
+.char-profile-screen { background:var(--bg-primary); overflow-y:auto; }
+.char-profile-nav {
+  position:absolute; top:0; left:0; width:100%; z-index:10;
+  padding:54px var(--space-base) var(--space-md);
+  display:flex; align-items:center; gap:var(--space-md);
+  background:var(--glass-bg); backdrop-filter:var(--glass-blur);
+  border-bottom:1px solid var(--separator);
+}
+.char-profile-back {
+  width:32px; height:32px; border:none; background:none; cursor:pointer;
+  font-size:20px; color:var(--tint); display:flex; align-items:center; justify-content:center;
+}
+.char-profile-back:active { opacity:0.6; }
+.char-profile-nav-title { font-size:17px; font-weight:600; }
+.char-profile-banner {
+  width:100%; height:200px; display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(180deg,#FFF5EE 0%,#FDDCC8 60%,#E8BFA8 100%);
+}
+.char-profile-info { text-align:center; padding:0 var(--space-base); margin-top:-36px; position:relative; z-index:5; }
+.char-profile-avatar {
+  width:72px; height:72px; border-radius:50%; border:3px solid var(--tint);
+  background:var(--bg-primary); display:flex; align-items:center; justify-content:center;
+  margin:0 auto var(--space-sm); overflow:hidden;
+}
+.char-profile-name {
+  font-size:22px; font-weight:700; margin-bottom:2px;
+  display:flex; align-items:center; justify-content:center; gap:var(--space-xs);
+}
+.char-profile-creator { font-size:15px; color:var(--label-secondary); margin-bottom:var(--space-lg); }
+.char-profile-stats {
+  display:flex; justify-content:center; gap:0;
+  margin-bottom:var(--space-lg);
+}
+.char-profile-stat {
+  flex:1; text-align:center; padding:var(--space-sm) 0;
+  border-right:1px solid var(--separator);
+}
+.char-profile-stat:last-child { border-right:none; }
+.char-profile-stat-value { font-size:17px; font-weight:700; margin-bottom:2px; }
+.char-profile-stat-label { font-size:11px; color:var(--label-secondary); text-transform:uppercase; letter-spacing:0.5px; }
+.char-profile-cta {
+  display:block; width:calc(100% - 32px); margin:0 auto var(--space-xl);
+  height:50px; background:var(--tint); color:white;
+  font-family:var(--font-system); font-size:17px; font-weight:600;
+  border:none; border-radius:var(--radius-md); cursor:pointer;
+  transition:transform var(--duration-micro), opacity var(--duration-micro);
+}
+.char-profile-cta:active { transform:scale(0.97); opacity:0.9; }
+.char-profile-section {
+  padding:0 var(--space-base); margin-bottom:var(--space-xl);
+}
+.char-profile-section-title {
+  font-size:12px; font-weight:600; color:var(--label-tertiary);
+  text-transform:uppercase; letter-spacing:1.5px;
+  margin-bottom:var(--space-md);
+}
+.char-profile-chips {
+  display:flex; flex-wrap:wrap; gap:var(--space-sm);
+}
+.char-profile-chip {
+  padding:var(--space-sm) var(--space-base);
+  background:var(--tint-soft); border-radius:var(--radius-full);
+  font-size:13px; font-weight:500; color:var(--tint);
+}
+.char-profile-milestone {
+  display:flex; align-items:flex-start; gap:var(--space-md);
+  padding:var(--space-md) var(--space-base);
+  background:var(--bg-tertiary); border-bottom:1px solid var(--separator);
+}
+.char-profile-milestone:first-child { border-radius:var(--radius-md) var(--radius-md) 0 0; }
+.char-profile-milestone:last-child { border-bottom:none; border-radius:0 0 var(--radius-md) var(--radius-md); }
+.char-profile-milestone:only-child { border-radius:var(--radius-md); }
+.char-profile-milestone-icon {
+  width:32px; height:32px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:14px; flex-shrink:0;
+  background:var(--tint-soft);
+}
+.char-profile-milestone-content { flex:1; }
+.char-profile-milestone-title { font-size:15px; font-weight:600; margin-bottom:2px; }
+.char-profile-milestone-meta { font-size:13px; color:var(--label-secondary); }
+
+/* ═══ Chats List ═══ */
+.chats-screen { background:var(--bg-primary); padding:54px var(--space-base) 90px; overflow-y:auto; }
+.chats-header { margin-top:var(--space-base); margin-bottom:var(--space-lg); }
+.chats-title { font-size:34px; font-weight:700; letter-spacing:-0.02em; }
+.chats-list-card {
+  background:var(--bg-tertiary); border-radius:var(--radius-md);
+  box-shadow:var(--shadow-1); overflow:hidden;
+}
+.chats-item {
+  display:flex; align-items:center; gap:var(--space-md);
+  padding:var(--space-md) var(--space-base);
+  cursor:pointer; border-bottom:1px solid var(--separator);
+  transition:background var(--duration-micro);
+}
+.chats-item:last-child { border-bottom:none; }
+.chats-item:active { background:var(--bg-secondary); }
+.chats-item-avatar {
+  width:48px; height:48px; border-radius:50%; background:var(--bg-secondary);
+  display:flex; align-items:center; justify-content:center; position:relative;
+  flex-shrink:0; overflow:hidden;
+}
+.chats-item-avatar .alive-dot {
+  position:absolute; bottom:2px; right:2px;
+  width:10px; height:10px; border:2px solid var(--bg-tertiary);
+}
+.chats-item-content { flex:1; min-width:0; }
+.chats-item-name { font-size:15px; font-weight:600; margin-bottom:2px; }
+.chats-item-last { font-size:13px; color:var(--label-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.chats-item-right { text-align:right; flex-shrink:0; }
+.chats-item-time { font-size:12px; color:var(--label-tertiary); margin-bottom:var(--space-xs); }
+.chats-item-temp { font-size:11px; font-weight:600; color:var(--tint); }
+.chats-find-more {
+  display:block; text-align:center; padding:var(--space-lg);
+  font-size:15px; color:var(--tint); font-weight:500;
+  cursor:pointer; border:none; background:none; width:100%;
+  font-family:var(--font-system);
+}
+.chats-find-more:active { opacity:0.7; }
+
+/* ═══ Credits Sheet ═══ */
+.credits-overlay {
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,0.4); z-index:300;
+  display:flex; align-items:flex-end; justify-content:center;
+}
+.credits-overlay.hidden { display:none!important; }
+.credits-sheet {
+  width:390px; max-width:100%;
+  background:var(--bg-primary); border-radius:var(--radius-xl) var(--radius-xl) 0 0;
+  padding:var(--space-xl) var(--space-base) var(--space-3xl);
+  animation:sheetUp 0.35s var(--ease-smooth) both;
+}
+@keyframes sheetUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+.credits-handle {
+  width:36px; height:5px; border-radius:3px;
+  background:var(--label-tertiary); margin:0 auto var(--space-xl); opacity:0.4;
+}
+.credits-balance { text-align:center; margin-bottom:var(--space-xl); }
+.credits-amount { font-size:42px; font-weight:700; letter-spacing:-0.02em; }
+.credits-label { font-size:15px; color:var(--label-secondary); margin-top:var(--space-xs); }
+.credits-free {
+  text-align:center; padding:var(--space-md);
+  background:var(--tint-soft); border-radius:var(--radius-md);
+  font-size:14px; color:var(--tint); font-weight:500;
+  margin-bottom:var(--space-xl);
+}
+.credits-tiers { display:flex; flex-direction:column; gap:var(--space-sm); margin-bottom:var(--space-xl); }
+.credits-tier {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:var(--space-md) var(--space-base);
+  background:var(--bg-tertiary); border-radius:var(--radius-md);
+  box-shadow:var(--shadow-1);
+}
+.credits-tier-amount { font-size:15px; font-weight:600; }
+.credits-tier-price {
+  font-size:15px; font-weight:600; color:var(--tint);
+  padding:var(--space-xs) var(--space-md);
+  background:var(--tint-soft); border-radius:var(--radius-full);
+}
+.credits-tier.popular { border:2px solid var(--tint); }
+.credits-tier.popular .credits-tier-amount::after {
+  content:' POPULAR'; font-size:9px; font-weight:700; color:var(--tint);
+  vertical-align:middle; margin-left:var(--space-xs);
+}
+.credits-cta {
+  display:block; width:100%; height:50px;
+  background:var(--tint); color:white;
+  font-family:var(--font-system); font-size:17px; font-weight:600;
+  border:none; border-radius:var(--radius-md); cursor:pointer;
+  transition:transform var(--duration-micro), opacity var(--duration-micro);
+}
+.credits-cta:active { transform:scale(0.97); opacity:0.9; }
+
+/* ═══ Utility ═══ */
+.hidden { display:none!important; }
+
+/* ═══ System Dark Mode (V6) ═══ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-primary: #000000;
+    --bg-secondary: #1C1C1E;
+    --bg-tertiary: #2C2C2E;
+    --label: #FFFFFF;
+    --label-secondary: rgba(235,235,245,0.6);
+    --label-tertiary: rgba(235,235,245,0.3);
+    --separator: rgba(84,84,88,0.65);
+    --separator-opaque: #38383A;
+    --glass-bg: var(--glass-bg-dark);
+    --glass-border: var(--glass-border-dark);
+    --bubble-char: #2C2424;
+    --warm-cream: #1C1C1E;
+    --tint-bright: #FFA47A;
+  }
+  body { background: #000; }
+  .phone { background: var(--bg-primary); }
+  /* Structural screens */
+  .discover-screen, .chats-screen, .profile-screen,
+  .miniapp, .life-grid-screen, .store-screen,
+  .char-profile-screen { background: var(--bg-primary); color: var(--label); }
+  .question-screen, #welcome, #closing { background: var(--bg-secondary); }
+  .chat-input-area { background: var(--bg-primary); }
+  .chat-input { background: var(--bg-secondary); color: var(--label); border-color: var(--separator); }
+  .q-option { background: var(--bg-tertiary); color: var(--label); }
+  .profile-card, .chats-list-card { background: var(--bg-tertiary); }
+  .profile-row:active, .chats-item:active { background: var(--bg-secondary); }
+  .life-card { background: var(--bg-tertiary); }
+  .life-card.add { border-color: var(--label-tertiary); }
+  .store-card { background: var(--bg-tertiary); }
+  .credits-sheet { background: var(--bg-primary); }
+  .credits-tier { background: var(--bg-tertiary); }
+  .flow-nav { background: var(--bg-tertiary); color: var(--label); }
+  .flow-nav-item:hover { background: rgba(255,133,82,0.15); }
+  .discover-search-input { color: var(--label); }
+  .discover-pill { background: var(--bg-secondary); border-color: var(--separator); color: var(--label-secondary); }
+  .char-profile-milestone { background: var(--bg-tertiary); }
+  .miniapp-item { border-bottom-color: var(--separator); }
+  .char-locked-badge { background: rgba(30,30,30,0.72); color: var(--label-secondary); }
+  /* Tab bars on structural screens */
+  #tab-bar-discover, #tab-bar-chats, #tab-bar-profile, #tab-bar-life {
+    background: rgba(30,30,30,0.72); border-top-color: rgba(255,255,255,0.06);
+  }
+  #tab-bar-discover .tab-label, #tab-bar-chats .tab-label,
+  #tab-bar-profile .tab-label, #tab-bar-life .tab-label { color: rgba(255,255,255,0.35); }
+  #tab-bar-discover .tab-item.active .tab-label, #tab-bar-chats .tab-item.active .tab-label,
+  #tab-bar-profile .tab-item.active .tab-label, #tab-bar-life .tab-item.active .tab-label { color: rgba(255,255,255,0.9); }
+}
+
+/* ═══ Growth Ring (I3 — Growth Visualization) ═══ */
+.growth-ring {
+  position:relative; width:80px; height:80px; margin:0 auto var(--space-sm);
+}
+.growth-ring-bg {
+  width:100%; height:100%; border-radius:50%;
+  background:conic-gradient(var(--tint) 0deg, var(--tint) var(--growth-deg, 120deg), var(--bg-secondary) var(--growth-deg, 120deg));
+  display:flex; align-items:center; justify-content:center;
+}
+.growth-ring-inner {
+  width:68px; height:68px; border-radius:50%; background:var(--bg-primary);
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; font-weight:700; color:var(--tint);
+}
+@media (prefers-color-scheme: dark) {
+  .growth-ring-inner { background: var(--bg-tertiary); }
+}
+.growth-stage-label {
+  text-align:center; font-size:12px; font-weight:600; color:var(--label-secondary);
+  margin-bottom:var(--space-xs);
+}
+.growth-stage-name {
+  text-align:center; font-size:15px; font-weight:700; color:var(--tint);
+  margin-bottom:var(--space-base);
+}
+/* Grow animation (V4) */
+@keyframes grow {
+  0% { background:conic-gradient(var(--tint) 0deg, var(--tint) var(--growth-deg), var(--bg-secondary) var(--growth-deg)); filter:brightness(1); }
+  50% { filter:brightness(1.15); }
+  100% { background:conic-gradient(var(--tint-bright) 0deg, var(--tint-bright) var(--growth-deg), var(--bg-secondary) var(--growth-deg)); filter:brightness(1); }
+}
+.growth-ring-bg.growing { animation: grow 4s ease infinite alternate; }
+
+/* ═══ Think + Respond Agent States (V4) ═══ */
+@keyframes think { 0%,100%{box-shadow:0 0 0 0 rgba(255,133,82,0)} 50%{box-shadow:0 0 12px 4px rgba(255,133,82,0.4)} }
+@keyframes respond { 0%{box-shadow:0 0 0 0 rgba(255,133,82,0.3)} 100%{box-shadow:0 0 0 16px rgba(255,133,82,0)} }
+.chat-header-avatar.thinking { animation: think 2.5s ease-in-out infinite; }
+.chat-header-avatar.responding { animation: respond 0.6s ease-out forwards; }
+</style>
+</head>
+<body>
+
+<div class="phone">
+<div class="notch"></div>
+
+<!-- 1. Splash -->
+<div class="screen active" id="splash">
+  <div class="splash-logo">ohmy<span class="c">c</span></div>
+  <div class="splash-tagline">your character, alive.</div>
+</div>
+
+<!-- 2. Welcome -->
+<div class="screen" id="welcome">
+  <div class="welcome-character" id="welcome-char-svg"></div>
+  <div class="welcome-title">Meet someone<br>who actually remembers you.</div>
+  <div class="welcome-sub">A character who checks in, grows with you, and never forgets.</div>
+  <button class="btn-primary" onclick="goTo('q1')">Let's find your match</button>
+</div>
+
+<!-- 3. Q1 -->
+<div class="screen question-screen" id="q1">
+  <div class="q-progress"><div class="q-progress-dot active"></div><div class="q-progress-dot"></div></div>
+  <div class="q-label">Quick one</div>
+  <div class="q-title">When do you usually wake up?</div>
+  <div class="q-options">
+    <div class="q-option" onclick="selectQ1('early')"><div class="q-option-icon" style="background:#FFF5E6">🌅</div><div><div class="q-option-text">Early Bird</div><div class="q-option-sub">Before 7am</div></div></div>
+    <div class="q-option" onclick="selectQ1('mid')"><div class="q-option-icon" style="background:#FFF8EC">☀️</div><div><div class="q-option-text">Mid-Morning</div><div class="q-option-sub">7 – 9am</div></div></div>
+    <div class="q-option" onclick="selectQ1('late')"><div class="q-option-icon" style="background:#F0F0FF">🌙</div><div><div class="q-option-text">Night Owl</div><div class="q-option-sub">After 9am</div></div></div>
+  </div>
+</div>
+
+<!-- 4. Q2 -->
+<div class="screen question-screen" id="q2">
+  <div class="q-progress"><div class="q-progress-dot active"></div><div class="q-progress-dot active"></div></div>
+  <div class="q-label">Your style</div>
+  <div class="q-title">What kind of energy do you want?</div>
+  <div class="q-options">
+    <div class="q-option" onclick="selectQ2('warm')"><div class="q-option-icon" style="background:#FFF0F0">💛</div><div><div class="q-option-text">Warm & Caring</div><div class="q-option-sub">Gentle, always there for you</div></div></div>
+    <div class="q-option" onclick="selectQ2('playful')"><div class="q-option-icon" style="background:#FFF5E6">✨</div><div><div class="q-option-text">Playful & Fun</div><div class="q-option-sub">Light-hearted, makes you smile</div></div></div>
+    <div class="q-option" onclick="selectQ2('calm')"><div class="q-option-icon" style="background:#F0FFF4">🌿</div><div><div class="q-option-text">Calm & Steady</div><div class="q-option-sub">Grounded, a quiet presence</div></div></div>
+  </div>
+</div>
+
+<!-- 1.5 Character Select -->
+<div class="screen" id="characters">
+  <div class="char-title">Here's your match ✨</div>
+  <div class="char-sub">We picked someone who fits your vibe.</div>
+  <!-- Hero Card (Lumi) -->
+  <div class="char-hero" id="lumi-card" onclick="selectCharacter()">
+    <div class="char-hero-art" id="lumi-hero-art"></div>
+    <div class="char-hero-overlay">
+      <div class="char-hero-name">Lumi</div>
+      <div class="char-hero-desc">Warm little companion who never forgets</div>
+      <div class="char-hero-meta">
+        <span class="alive-dot" style="margin-right:2px"></span> alive
+        <span style="margin:0 4px">·</span>
+        <div class="char-hero-tags">
+          <span class="char-hero-tag">Caring</span>
+          <span class="char-hero-tag">Attentive</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Locked -->
+  <div class="char-locked-row">
+    <div class="char-locked-card"><div class="char-locked-art" id="locked1-avatar"></div><div class="char-locked-badge">Coming Soon</div></div>
+    <div class="char-locked-card"><div class="char-locked-art" id="locked2-avatar"></div><div class="char-locked-badge">Coming Soon</div></div>
+    <div class="char-locked-card"><div class="char-locked-art" id="locked3-avatar"></div><div class="char-locked-badge">Coming Soon</div></div>
+  </div>
+  <div class="char-select-hint">Tap to say hi 👋</div>
+</div>
+
+<!-- 1.6 Onboarding Chat -->
+<div class="screen chat-screen" id="chat">
+  <div class="chat-header">
+    <button class="chat-back" onclick="goTo('characters')">‹</button>
+    <div class="chat-header-avatar" id="chat-avatar"></div>
+    <div><div class="chat-header-name">Lumi</div><div class="chat-header-status"><span class="alive-dot"></span>alive</div></div>
+  </div>
+  <div class="chat-messages" id="messages"></div>
+  <div class="chat-input-area hidden" id="input-area">
+    <div class="chat-input-wrap">
+      <input class="chat-input" id="chat-input" placeholder="Type your name..." autocomplete="off">
+      <button class="chat-send" onclick="sendUserInput()">↑</button>
+    </div>
+  </div>
+</div>
+
+<!-- 7. Closing -->
+<div class="screen" id="closing">
+  <div class="closing-character" id="closing-char-svg"></div>
+  <div class="closing-msg" id="closing-msg">Your character is alive. 💛</div>
+  <div class="closing-sub" id="closing-sub"></div>
+  <div style="height:var(--space-xl)"></div>
+  <button class="btn-primary" id="closing-btn" onclick="goToHome()">Take me home →</button>
+  <div style="flex:1"></div>
+  <div class="closing-tagline">your character, alive.</div>
+  <div style="height:var(--space-sm)"></div>
+  <div class="closing-wordmark">ohmy<span class="c">c</span></div>
+  <div style="height:var(--space-lg)"></div>
+</div>
+
+<!-- 8. Home -->
+<div class="screen" id="home">
+  <div class="home-bg evening" id="home-bg"></div>
+  <div class="deco moon" id="deco-moon" style="top:80px;right:36px"></div>
+  <div class="deco star" style="top:100px;left:50px;animation-delay:0.3s"></div>
+  <div class="deco star" style="top:130px;left:100px;animation-delay:0.8s"></div>
+  <div class="deco star" style="top:90px;right:110px;animation-delay:1.2s"></div>
+  <div class="deco star" style="top:160px;left:70px;animation-delay:0.5s"></div>
+  <div class="deco star" style="top:140px;right:70px;width:4px;height:4px;animation-delay:0.1s"></div>
+  <div class="deco sun hidden" id="deco-sun" style="top:76px;right:32px"></div>
+  <div class="home-content">
+    <div class="home-time dark" id="home-time">11:30 PM</div>
+    <div class="home-date dark" id="home-date">Monday, March 23</div>
+    <div class="home-character-wrap evening" id="home-char-wrap">
+      <div class="temp-glow" id="temp-glow"></div>
+      <div id="home-char-svg"></div>
+    </div>
+    <div class="temp-pill dark" id="temp-pill"><span class="temp-pill-dot" id="temp-dot"></span><span id="temp-value">36.5°C</span></div>
+    <div class="home-status dark" id="home-status">Getting ready for tomorrow...</div>
+    <div class="home-bubble" id="home-bubble"></div>
+    <div class="home-skip"><button class="btn-ghost" id="skip-btn" onclick="skipToMorning()" style="color:rgba(255,255,255,0.45)">Skip to morning →</button></div>
+  </div>
+  <div class="tab-bar dark" id="tab-bar">
+    <button class="tab-item active" onclick="switchTab('home')"><span class="tab-icon">🏠</span><span class="tab-label dark">Home</span></button>
+    <button class="tab-item" onclick="switchTab('discover')"><span class="tab-icon">🔍</span><span class="tab-label dark">Discover</span></button>
+    <button class="tab-item" onclick="switchTab('create')"><span class="tab-icon">✏️</span><span class="tab-label dark">Create</span></button>
+    <button class="tab-item" onclick="switchTab('chats')"><span class="tab-icon">💬</span><span class="tab-label dark">Chats</span></button>
+    <button class="tab-item" onclick="switchTab('profile')"><span class="tab-icon">👤</span><span class="tab-label dark">Profile</span></button>
+  </div>
+</div>
+
+<!-- 9. Push Notification -->
+<div class="screen" id="push-sim">
+  <div class="push-time" id="push-time">8:00</div>
+  <div class="push-date" id="push-date">Tuesday, March 24</div>
+  <div class="push-card">
+    <div class="push-card-header">
+      <div class="push-card-icon"><span>c</span></div>
+      <span class="push-card-app">ohmyc</span>
+      <span class="push-card-when">now</span>
+    </div>
+    <div class="push-card-title">Lumi</div>
+    <div class="push-card-body" id="push-body">Good morning! Did you sleep well?</div>
+  </div>
+  <div class="push-hint">Tap to open</div>
+</div>
+
+<!-- 3.3 Day 2 Chat -->
+<div class="screen chat-screen" id="chat-day2">
+  <div class="chat-header">
+    <button class="chat-back" onclick="goTo('home');setupHome('morning')">‹</button>
+    <div class="chat-header-avatar" id="chat2-avatar"></div>
+    <div><div class="chat-header-name">Lumi</div><div class="chat-header-status"><span class="alive-dot"></span>alive</div></div>
+  </div>
+  <div class="chat-messages" id="messages2"></div>
+  <div class="chat-input-area hidden" id="input-area2"></div>
+</div>
+
+<!-- 3.6 Afternoon Chat -->
+<div class="screen chat-screen" id="chat-afternoon">
+  <div class="chat-header">
+    <button class="chat-back" onclick="goTo('home');setupHome('daytime')">‹</button>
+    <div class="chat-header-avatar" id="chat3-avatar"></div>
+    <div><div class="chat-header-name">Lumi</div><div class="chat-header-status"><span class="alive-dot"></span>alive</div></div>
+  </div>
+  <div class="chat-messages" id="messages3"></div>
+  <div class="chat-input-area hidden" id="input-area3"></div>
+</div>
+
+<!-- 3.7 Evening Chat -->
+<div class="screen chat-screen" id="chat-evening">
+  <div class="chat-header">
+    <button class="chat-back" onclick="goTo('home');setupHome('evening2')">‹</button>
+    <div class="chat-header-avatar" id="chat4-avatar"></div>
+    <div><div class="chat-header-name">Lumi</div><div class="chat-header-status"><span class="alive-dot"></span>alive</div></div>
+  </div>
+  <div class="chat-messages" id="messages4"></div>
+  <div class="chat-input-area hidden" id="input-area4"></div>
+</div>
+
+<!-- Mini-App: Today -->
+<div class="screen miniapp" id="miniapp-today">
+  <div class="miniapp-header">
+    <button class="miniapp-back" onclick="goTo('home')">‹</button>
+    <div><div class="miniapp-title">Today</div><div class="miniapp-subtitle" id="miniapp-today-date">Tuesday, March 24</div></div>
+  </div>
+  <div class="miniapp-source">💬 Built from your conversations — no forms</div>
+  <div id="miniapp-today-content"></div>
+  <div class="miniapp-empty hidden" id="miniapp-today-empty">Nothing yet.<br>Just mention your plans to Lumi — she'll remember.</div>
+</div>
+
+<!-- Mini-App: Memories -->
+<div class="screen miniapp" id="miniapp-memories">
+  <div class="miniapp-header">
+    <button class="miniapp-back" onclick="goTo('home')">‹</button>
+    <div><div class="miniapp-title">Memories</div><div class="miniapp-subtitle">What Lumi knows about you</div></div>
+  </div>
+  <div class="miniapp-source">🧠 Everything Lumi knows about you — from conversation</div>
+  <div id="miniapp-memories-content"></div>
+</div>
+
+<!-- 4.1 Life Grid -->
+<div class="screen life-grid-screen" id="life-grid">
+  <div class="life-grid-header">
+    <div><div class="life-grid-title">Your Life</div><div class="life-grid-sub">Lumi builds this as you talk. No input needed.</div></div>
+  </div>
+  <div class="life-grid" id="life-grid-cards"></div>
+  <div style="height:80px"></div>
+  <div class="tab-bar" id="tab-bar-life">
+    <button class="tab-item" onclick="switchTab('home')"><span class="tab-icon">🏠</span><span class="tab-label light">Home</span></button>
+    <button class="tab-item active" onclick="switchTab('discover')"><span class="tab-icon">🔍</span><span class="tab-label light">Discover</span></button>
+    <button class="tab-item" onclick="switchTab('create')"><span class="tab-icon">✏️</span><span class="tab-label light">Create</span></button>
+    <button class="tab-item" onclick="switchTab('chats')"><span class="tab-icon">💬</span><span class="tab-label light">Chats</span></button>
+    <button class="tab-item" onclick="switchTab('profile')"><span class="tab-icon">👤</span><span class="tab-label light">Profile</span></button>
+  </div>
+</div>
+
+<!-- 4.2 Mini-App Store -->
+<div class="screen store-screen" id="miniapp-store">
+  <div class="life-grid-header">
+    <div style="display:flex;align-items:center;gap:var(--space-md)">
+      <button class="miniapp-back" onclick="goTo('life-grid')">‹</button>
+      <div><div class="life-grid-title">Add to your life</div><div class="life-grid-sub">Give Lumi more to talk about with you.</div></div>
+    </div>
+  </div>
+  <div id="store-cards"></div>
+</div>
+
+<!-- 5.2 Meals Chat -->
+<div class="screen chat-screen" id="chat-meals">
+  <div class="chat-header">
+    <button class="chat-back" onclick="goTo('home')">‹</button>
+    <div class="chat-header-avatar" id="chat5-avatar"></div>
+    <div><div class="chat-header-name">Lumi</div><div class="chat-header-status"><span class="alive-dot"></span>alive</div></div>
+  </div>
+  <div class="chat-messages" id="messages5"></div>
+  <div class="chat-input-area hidden" id="input-area5"></div>
+</div>
+
+<!-- 5.3 Meals Mini-App -->
+<div class="screen miniapp" id="miniapp-meals">
+  <div class="miniapp-header">
+    <button class="miniapp-back" onclick="goTo('life-grid')">‹</button>
+    <div><div class="miniapp-title">Meals</div><div class="miniapp-subtitle">What you've been eating</div></div>
+  </div>
+  <div class="miniapp-source">💬 Lumi tracks this naturally — no logging needed</div>
+  <div id="miniapp-meals-content"></div>
+  <div class="miniapp-empty hidden" id="miniapp-meals-empty">Nothing yet.<br>Lumi will ask about your meals at natural moments.</div>
+</div>
+
+<!-- 5. Discover (Marketplace) -->
+<div class="screen discover-screen" id="discover">
+  <div class="discover-header">
+    <div class="discover-title">Characters</div>
+  </div>
+  <div class="discover-search">
+    <span class="discover-search-icon">🔍</span>
+    <input class="discover-search-input" placeholder="Find your next character..." disabled>
+  </div>
+  <!-- Featured Hero Card: Lumi -->
+  <div class="discover-hero" id="discover-hero" onclick="goTo('char-profile')">
+    <div class="discover-hero-art" id="discover-hero-art"></div>
+    <div class="discover-hero-overlay">
+      <div class="discover-hero-badge">Your Companion</div>
+      <div class="discover-hero-name">Lumi</div>
+      <div class="discover-hero-creator">@netty</div>
+      <div class="discover-hero-meta">
+        <span class="alive-dot" style="margin-right:2px"></span> alive
+        <span style="margin:0 4px">·</span> 1 bond
+      </div>
+    </div>
+  </div>
+  <!-- Category Pills -->
+  <div class="discover-category-pills" id="discover-pills">
+    <button class="discover-pill active" data-cat="all">All</button>
+    <button class="discover-pill" data-cat="caring">Caring</button>
+    <button class="discover-pill" data-cat="fun">Fun</button>
+    <button class="discover-pill" data-cat="chill">Chill</button>
+    <button class="discover-pill" data-cat="creative">Creative</button>
+  </div>
+  <!-- 2-col Card Grid -->
+  <div class="discover-card-grid" id="discover-card-grid"></div>
+  <div style="height:20px"></div>
+  <div class="tab-bar" id="tab-bar-discover">
+    <button class="tab-item" onclick="switchTab('home')"><span class="tab-icon">🏠</span><span class="tab-label light">Home</span></button>
+    <button class="tab-item active" onclick="switchTab('discover')"><span class="tab-icon">🔍</span><span class="tab-label light">Discover</span></button>
+    <button class="tab-item" onclick="switchTab('create')"><span class="tab-icon">✏️</span><span class="tab-label light">Create</span></button>
+    <button class="tab-item" onclick="switchTab('chats')"><span class="tab-icon">💬</span><span class="tab-label light">Chats</span></button>
+    <button class="tab-item" onclick="switchTab('profile')"><span class="tab-icon">👤</span><span class="tab-label light">Profile</span></button>
+  </div>
+</div>
+
+<!-- 5.2 Character Profile -->
+<div class="screen char-profile-screen" id="char-profile">
+  <div class="char-profile-nav">
+    <button class="char-profile-back" onclick="goTo('discover')">‹</button>
+    <div class="char-profile-nav-title">Profile</div>
+  </div>
+  <div class="char-profile-banner" id="char-profile-banner-art"></div>
+  <div class="char-profile-info">
+    <div class="char-profile-avatar" id="char-profile-avatar"></div>
+    <div class="char-profile-name"><span class="alive-dot"></span> Lumi</div>
+    <div class="char-profile-creator">by @netty</div>
+  </div>
+  <div class="char-profile-stats">
+    <div class="char-profile-stat">
+      <div class="char-profile-stat-value" id="cp-temp">37.8°C</div>
+      <div class="char-profile-stat-label">Temp</div>
+    </div>
+    <div class="char-profile-stat">
+      <div class="char-profile-stat-value">Level 5</div>
+      <div class="char-profile-stat-label">Bond</div>
+    </div>
+    <div class="char-profile-stat">
+      <div class="char-profile-stat-value">2 days</div>
+      <div class="char-profile-stat-label">Together</div>
+    </div>
+  </div>
+  <button class="char-profile-cta" onclick="goTo('home')">Talk</button>
+  <div class="char-profile-section">
+    <div class="char-profile-section-title">Growth</div>
+    <div class="growth-ring">
+      <div class="growth-ring-bg growing" id="growth-ring" style="--growth-deg:200deg">
+        <div class="growth-ring-inner" id="growth-level">Lv 5</div>
+      </div>
+    </div>
+    <div class="growth-stage-label">Stage</div>
+    <div class="growth-stage-name" id="growth-stage">Close Friend 💛</div>
+    <div style="font-size:13px;color:var(--label-secondary);text-align:center;line-height:1.5;padding:0 var(--space-base)">
+      Lumi is more expressive now — she jokes around and remembers the small things about your day.
+    </div>
+  </div>
+  <div class="char-profile-section">
+    <div class="char-profile-section-title">About</div>
+    <div class="char-profile-chips">
+      <span class="char-profile-chip">Caring</span>
+      <span class="char-profile-chip">Morning person</span>
+      <span class="char-profile-chip">Good listener</span>
+      <span class="char-profile-chip">Remembers everything</span>
+    </div>
+  </div>
+  <div class="char-profile-section">
+    <div class="char-profile-section-title">Milestones</div>
+    <div class="char-profile-milestone">
+      <div class="char-profile-milestone-icon">🌟</div>
+      <div class="char-profile-milestone-content">
+        <div class="char-profile-milestone-title">First meeting</div>
+        <div class="char-profile-milestone-meta">Day 1 — "Hi there!"</div>
+      </div>
+    </div>
+    <div class="char-profile-milestone">
+      <div class="char-profile-milestone-icon">🧠</div>
+      <div class="char-profile-milestone-content">
+        <div class="char-profile-milestone-title">Remembered your schedule</div>
+        <div class="char-profile-milestone-meta">Day 2 — morning check-in</div>
+      </div>
+    </div>
+    <div class="char-profile-milestone">
+      <div class="char-profile-milestone-icon">💛</div>
+      <div class="char-profile-milestone-content">
+        <div class="char-profile-milestone-title">First full day together</div>
+        <div class="char-profile-milestone-meta">Day 2 — evening wrap-up</div>
+      </div>
+    </div>
+  </div>
+  <div style="height:var(--space-2xl)"></div>
+</div>
+
+<!-- 6. Chats -->
+<div class="screen chats-screen" id="chats-list">
+  <div class="chats-header">
+    <div class="chats-title">Chats</div>
+  </div>
+  <div class="chats-list-card">
+    <div class="chats-item" onclick="goTo('home')">
+      <div class="chats-item-avatar" id="chats-lumi-avatar">
+        <span class="alive-dot"></span>
+      </div>
+      <div class="chats-item-content">
+        <div class="chats-item-name">Lumi</div>
+        <div class="chats-item-last" id="chats-last-msg">Sleep well. I'll be here tomorrow. 🌙</div>
+      </div>
+      <div class="chats-item-right">
+        <div class="chats-item-time">10:30 PM</div>
+        <div class="chats-item-temp" id="chats-temp">37.8°C</div>
+      </div>
+    </div>
+  </div>
+  <button class="chats-find-more" onclick="switchTab('discover')">Find another character →</button>
+  <div style="height:80px"></div>
+  <div class="tab-bar" id="tab-bar-chats">
+    <button class="tab-item" onclick="switchTab('home')"><span class="tab-icon">🏠</span><span class="tab-label light">Home</span></button>
+    <button class="tab-item" onclick="switchTab('discover')"><span class="tab-icon">🔍</span><span class="tab-label light">Discover</span></button>
+    <button class="tab-item active" onclick="switchTab('chats')"><span class="tab-icon">💬</span><span class="tab-label light">Chats</span></button>
+    <button class="tab-item" onclick="switchTab('profile')"><span class="tab-icon">👤</span><span class="tab-label light">Profile</span></button>
+  </div>
+</div>
+
+<!-- Profile -->
+<div class="screen profile-screen" id="profile">
+  <div class="profile-header">
+    <div class="profile-avatar">👤</div>
+    <div class="profile-name" id="profile-name">Demo</div>
+    <div class="profile-sub">1 companion · 2 days together</div>
+  </div>
+  <div class="profile-section">
+    <div class="profile-section-title">My Bond</div>
+    <div class="profile-card">
+      <div class="profile-row" onclick="goTo('home')">
+        <span class="profile-row-icon">💛</span>
+        <span class="profile-row-label">Lumi</span>
+        <span class="profile-row-value" id="profile-temp">37.8°C</span>
+        <span class="profile-row-chevron">›</span>
+      </div>
+    </div>
+  </div>
+  <div class="profile-section">
+    <div class="profile-section-title">Characters</div>
+    <div class="profile-card">
+      <div class="profile-row" onclick="goTo('discover')">
+        <span class="profile-row-icon">🔍</span>
+        <span class="profile-row-label">Discover Characters</span>
+        <span class="profile-row-chevron">›</span>
+      </div>
+    </div>
+  </div>
+  <div class="profile-section">
+    <div class="profile-section-title">Settings</div>
+    <div class="profile-card">
+      <div class="profile-row">
+        <span class="profile-row-icon">🔔</span>
+        <span class="profile-row-label">Notifications</span>
+        <span class="profile-row-value">3/day</span>
+        <span class="profile-row-chevron">›</span>
+      </div>
+      <div class="profile-row">
+        <span class="profile-row-icon">🌙</span>
+        <span class="profile-row-label">Quiet Hours</span>
+        <span class="profile-row-value">11pm – 7am</span>
+        <span class="profile-row-chevron">›</span>
+      </div>
+      <div class="profile-row" onclick="openCredits()">
+        <span class="profile-row-icon">💳</span>
+        <span class="profile-row-label">Credits</span>
+        <span class="profile-row-value">50 remaining</span>
+        <span class="profile-row-chevron">›</span>
+      </div>
+    </div>
+  </div>
+  <div class="tab-bar" id="tab-bar-profile">
+    <button class="tab-item" onclick="switchTab('home')"><span class="tab-icon">🏠</span><span class="tab-label light">Home</span></button>
+    <button class="tab-item" onclick="switchTab('discover')"><span class="tab-icon">🔍</span><span class="tab-label light">Discover</span></button>
+    <button class="tab-item" onclick="switchTab('create')"><span class="tab-icon">✏️</span><span class="tab-label light">Create</span></button>
+    <button class="tab-item" onclick="switchTab('chats')"><span class="tab-icon">💬</span><span class="tab-label light">Chats</span></button>
+    <button class="tab-item active" onclick="switchTab('profile')"><span class="tab-icon">👤</span><span class="tab-label light">Profile</span></button>
+  </div>
+</div>
+
+<!-- 7.2 Credits Sheet -->
+<div class="credits-overlay hidden" id="credits-overlay" onclick="closeCredits()">
+  <div class="credits-sheet" onclick="event.stopPropagation()">
+    <div class="credits-handle"></div>
+    <div class="credits-balance">
+      <div class="credits-amount">50 credits</div>
+      <div class="credits-label">Your credits</div>
+    </div>
+    <div class="credits-free">10 free turns / day included</div>
+    <div class="credits-tiers">
+      <div class="credits-tier">
+        <span class="credits-tier-amount">100 credits</span>
+        <span class="credits-tier-price">$1.99</span>
+      </div>
+      <div class="credits-tier popular">
+        <span class="credits-tier-amount">500 credits</span>
+        <span class="credits-tier-price">$7.99</span>
+      </div>
+      <div class="credits-tier">
+        <span class="credits-tier-amount">1,200 credits</span>
+        <span class="credits-tier-price">$14.99</span>
+      </div>
+    </div>
+    <button class="credits-cta" onclick="closeCredits()">Get Credits</button>
+  </div>
+</div>
+
+</div><!-- /phone -->
+
+<!-- Flow Navigator -->
+<button class="flow-toggle" id="flow-toggle" onclick="toggleFlowNav()">☰</button>
+<div class="flow-nav" id="flow-nav">
+  <div class="flow-nav-title">Prototype Flow</div>
+  <div class="flow-nav-section">1. Onboarding</div>
+  <button class="flow-nav-item" data-stage="splash" onclick="jumpTo('splash')"><span class="flow-nav-dot"></span>1.1 Splash</button>
+  <button class="flow-nav-item" data-stage="welcome" onclick="jumpTo('welcome')"><span class="flow-nav-dot"></span>1.2 Welcome</button>
+  <button class="flow-nav-item" data-stage="q1" onclick="jumpTo('q1')"><span class="flow-nav-dot"></span>1.3 Q1 Wake Time</button>
+  <button class="flow-nav-item" data-stage="q2" onclick="jumpTo('q2')"><span class="flow-nav-dot"></span>1.4 Q2 Vibe</button>
+  <button class="flow-nav-item" data-stage="characters" onclick="jumpTo('characters')"><span class="flow-nav-dot"></span>1.5 Character Select</button>
+  <button class="flow-nav-item" data-stage="chat" onclick="jumpTo('chat')"><span class="flow-nav-dot"></span>1.6 First Chat</button>
+  <button class="flow-nav-item" data-stage="closing" onclick="jumpTo('closing')"><span class="flow-nav-dot"></span>1.7 Closing</button>
+  <div class="flow-nav-section">2. Day 1 Evening</div>
+  <button class="flow-nav-item" data-stage="home-evening" onclick="jumpTo('home-evening')"><span class="flow-nav-dot"></span>2.1 Home (Night)</button>
+  <div class="flow-nav-section">3. Day 2</div>
+  <button class="flow-nav-item" data-stage="push-sim" onclick="jumpTo('push-sim')"><span class="flow-nav-dot"></span>3.1 Push Notification</button>
+  <button class="flow-nav-item" data-stage="home-morning" onclick="jumpTo('home-morning')"><span class="flow-nav-dot"></span>3.2 Home (Morning)</button>
+  <button class="flow-nav-item" data-stage="chat-day2" onclick="jumpTo('chat-day2')"><span class="flow-nav-dot"></span>3.3 Day 2 Chat</button>
+  <button class="flow-nav-item" data-stage="home-daytime" onclick="jumpTo('home-daytime')"><span class="flow-nav-dot"></span>3.4 Home (Daytime)</button>
+  <button class="flow-nav-item" data-stage="chat-afternoon" onclick="jumpTo('chat-afternoon')"><span class="flow-nav-dot"></span>3.5 Afternoon Check-in</button>
+  <button class="flow-nav-item" data-stage="chat-evening" onclick="jumpTo('chat-evening')"><span class="flow-nav-dot"></span>3.6 Evening Wrap-up</button>
+  <button class="flow-nav-item" data-stage="home-night2" onclick="jumpTo('home-night2')"><span class="flow-nav-dot"></span>3.7 Home (Night)</button>
+  <div class="flow-nav-section">4. Life System</div>
+  <button class="flow-nav-item" data-stage="life-grid" onclick="jumpTo('life-grid')"><span class="flow-nav-dot"></span>4.1 Life Grid</button>
+  <button class="flow-nav-item" data-stage="miniapp-store" onclick="jumpTo('miniapp-store')"><span class="flow-nav-dot"></span>4.2 Mini-App Store</button>
+  <button class="flow-nav-item" data-stage="miniapp-today" onclick="jumpTo('miniapp-today')"><span class="flow-nav-dot"></span>4.3 Today</button>
+  <button class="flow-nav-item" data-stage="miniapp-memories" onclick="jumpTo('miniapp-memories')"><span class="flow-nav-dot"></span>4.4 Memories</button>
+  <div class="flow-nav-section">5. Install Meals</div>
+  <button class="flow-nav-item" data-stage="install-meals" onclick="jumpTo('install-meals')"><span class="flow-nav-dot"></span>5.1 Install from Store</button>
+  <button class="flow-nav-item" data-stage="chat-meals" onclick="jumpTo('chat-meals')"><span class="flow-nav-dot"></span>5.2 Lumi detects + Meal chat</button>
+  <button class="flow-nav-item" data-stage="miniapp-meals" onclick="jumpTo('miniapp-meals')"><span class="flow-nav-dot"></span>5.3 Meals Mini-App</button>
+  <div class="flow-nav-section">6. Discover</div>
+  <button class="flow-nav-item" data-stage="discover" onclick="jumpTo('discover')"><span class="flow-nav-dot"></span>6.1 Discover Home</button>
+  <button class="flow-nav-item" data-stage="char-profile" onclick="jumpTo('char-profile')"><span class="flow-nav-dot"></span>6.2 Character Profile</button>
+  <div class="flow-nav-section">7. Chats</div>
+  <button class="flow-nav-item" data-stage="chats-list" onclick="jumpTo('chats-list')"><span class="flow-nav-dot"></span>7.1 Chats List</button>
+  <div class="flow-nav-section">8. User Profile</div>
+  <button class="flow-nav-item" data-stage="profile" onclick="jumpTo('profile')"><span class="flow-nav-dot"></span>8.1 Profile</button>
+  <button class="flow-nav-item" data-stage="credits" onclick="jumpTo('credits')"><span class="flow-nav-dot"></span>8.2 Credits</button>
+</div>
+
+<script>
+/* ═══ State ═══ */
+var userName='',wakeTime='8:00am',userMood='',agreedTomorrow=false,homeState='evening',inputCallback=null;
+var userPlan='',userPlanLabel='',afternoonDone=false;
+var bondTemp=36.5,prevTemp=36.5;
+
+/* ═══ Temperature System ═══ */
+function setTemp(newTemp){
+  prevTemp=bondTemp;
+  bondTemp=Math.round(newTemp*10)/10;
+}
+function renderTemp(showChange){
+  var pill=document.getElementById('temp-pill');
+  var val=document.getElementById('temp-value');
+  var dot=document.getElementById('temp-dot');
+  var glow=document.getElementById('temp-glow');
+  if(!pill)return;
+  // Value
+  val.textContent=bondTemp.toFixed(1)+'°C';
+  // Dot color: cold→warm gradient
+  var warmth=Math.min((bondTemp-36)/3,1);
+  var r=Math.round(180+75*warmth);
+  var g=Math.round(180-60*warmth);
+  var b=Math.round(180-80*warmth);
+  dot.style.background='rgb('+r+','+g+','+b+')';
+  // Glow
+  var glowOpacity=Math.max(0,Math.min((bondTemp-36.3)/2,0.5));
+  glow.style.setProperty('--temp-glow-opacity',glowOpacity.toFixed(2));
+  var glowSize=160+warmth*60;
+  glow.style.width=glowSize+'px';
+  glow.style.height=glowSize+'px';
+  // Warm pulse animation on increase
+  if(showChange&&bondTemp>prevTemp){
+    glow.classList.remove('pulse');
+    void glow.offsetWidth;
+    glow.classList.add('pulse');
+    // Show change indicator
+    var existing=pill.querySelector('.temp-change');
+    if(existing)existing.remove();
+    var ch=document.createElement('span');
+    ch.className='temp-change';
+    ch.textContent='+'+((bondTemp-prevTemp).toFixed(1))+'°';
+    pill.appendChild(ch);
+    setTimeout(function(){if(ch.parentNode)ch.remove();},3000);
+  }
+}
+function tempColor(dark){
+  var pill=document.getElementById('temp-pill');
+  if(pill)pill.className='temp-pill '+(dark?'dark':'light');
+}
+
+/* ═══ SVG Builders ═══ */
+function buildLumiSVG(w,h){
+  var ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');
+  svg.setAttribute('viewBox','0 0 120 170');svg.setAttribute('width',w);svg.setAttribute('height',h);
+  [['ellipse',{cx:60,cy:165,rx:28,ry:5,fill:'#F0E0D6',opacity:0.4}],
+   ['rect',{x:40,y:133,width:13,height:18,rx:6.5,fill:'#FDDCC8'}],
+   ['rect',{x:67,y:133,width:13,height:18,rx:6.5,fill:'#FDDCC8'}],
+   ['ellipse',{cx:46.5,cy:152,rx:10,ry:6.5,fill:'#D94444'}],
+   ['ellipse',{cx:73.5,cy:152,rx:10,ry:6.5,fill:'#D94444'}],
+   ['rect',{x:36,y:98,width:48,height:42,rx:18,fill:'#FFF5EE'}],
+   ['circle',{cx:60,cy:104,r:3.5,fill:'#D94444'}],
+   ['ellipse',{cx:31,cy:114,rx:9,ry:6,fill:'#FDDCC8',transform:'rotate(-15,31,114)'}],
+   ['ellipse',{cx:89,cy:114,rx:9,ry:6,fill:'#FDDCC8',transform:'rotate(15,89,114)'}],
+   ['circle',{cx:60,cy:55,r:42,fill:'#FDDCC8'}],
+   ['ellipse',{cx:60,cy:40,rx:44,ry:36,fill:'#5C3D2E'}],
+   ['circle',{cx:60,cy:58,r:37,fill:'#FDDCC8'}],
+   ['path',{d:'M20 50 Q28 24 60 20 Q92 24 100 50 Q97 40 88 33 Q72 20 60 23 Q48 20 32 33 Q23 40 20 50Z',fill:'#5C3D2E'}],
+   ['ellipse',{cx:20,cy:60,rx:9,ry:22,fill:'#5C3D2E'}],
+   ['ellipse',{cx:100,cy:60,rx:9,ry:22,fill:'#5C3D2E'}],
+   ['ellipse',{cx:46,cy:58,rx:6.5,ry:8,fill:'#2D1B11'}],
+   ['ellipse',{cx:74,cy:58,rx:6.5,ry:8,fill:'#2D1B11'}],
+   ['circle',{cx:49,cy:55,r:2.8,fill:'white'}],['circle',{cx:77,cy:55,r:2.8,fill:'white'}],
+   ['circle',{cx:44.5,cy:60,r:1.5,fill:'white',opacity:0.7}],['circle',{cx:72.5,cy:60,r:1.5,fill:'white',opacity:0.7}],
+   ['ellipse',{cx:35,cy:67,rx:7,ry:4.5,fill:'#FFB5B5',opacity:0.45}],
+   ['ellipse',{cx:85,cy:67,rx:7,ry:4.5,fill:'#FFB5B5',opacity:0.45}],
+   ['path',{d:'M55 72 Q60 77 65 72',stroke:'#2D1B11',fill:'none','stroke-width':1.5,'stroke-linecap':'round'}]
+  ].forEach(function(p){var el=document.createElementNS(ns,p[0]);Object.keys(p[1]).forEach(function(k){el.setAttribute(k,p[1][k]);});svg.appendChild(el);});
+  var g=document.createElementNS(ns,'g');g.setAttribute('transform','translate(97,38)');
+  [['ellipse',{cx:-5,cy:-4,rx:7,ry:4.5,fill:'#D94444',transform:'rotate(-25,-5,-4)'}],
+   ['ellipse',{cx:5,cy:-4,rx:7,ry:4.5,fill:'#D94444',transform:'rotate(25,5,-4)'}],
+   ['ellipse',{cx:-5,cy:3,rx:7,ry:4.5,fill:'#E85555',transform:'rotate(25,-5,3)'}],
+   ['ellipse',{cx:5,cy:3,rx:7,ry:4.5,fill:'#E85555',transform:'rotate(-25,5,3)'}],
+   ['circle',{cx:0,cy:0,r:3,fill:'#B83030'}]
+  ].forEach(function(p){var el=document.createElementNS(ns,p[0]);Object.keys(p[1]).forEach(function(k){el.setAttribute(k,p[1][k]);});g.appendChild(el);});
+  svg.appendChild(g);return svg;
+}
+function buildBlobSVG(w,h,c1,c2){
+  var ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');
+  svg.setAttribute('viewBox','0 0 80 100');svg.setAttribute('width',w);svg.setAttribute('height',h);
+  [['circle',{cx:40,cy:35,r:28,fill:c1}],['rect',{x:20,y:58,width:40,height:34,rx:14,fill:c1}],
+   ['circle',{cx:40,cy:28,r:30,fill:c2}],['circle',{cx:40,cy:38,r:25,fill:c1}]
+  ].forEach(function(p){var el=document.createElementNS(ns,p[0]);Object.keys(p[1]).forEach(function(k){el.setAttribute(k,p[1][k]);});svg.appendChild(el);});
+  return svg;
+}
+
+function initSVGs(){
+  document.getElementById('welcome-char-svg').appendChild(buildLumiSVG(160,200));
+  document.getElementById('lumi-hero-art').appendChild(buildLumiSVG(180,225));
+  document.getElementById('closing-char-svg').appendChild(buildLumiSVG(120,150));
+  document.getElementById('chat-avatar').appendChild(buildLumiSVG(32,32));
+  document.getElementById('chat2-avatar').appendChild(buildLumiSVG(32,32));
+  document.getElementById('chat3-avatar').appendChild(buildLumiSVG(32,32));
+  document.getElementById('chat4-avatar').appendChild(buildLumiSVG(32,32));
+  document.getElementById('chat5-avatar').appendChild(buildLumiSVG(32,32));
+  document.getElementById('home-char-svg').appendChild(buildLumiSVG(140,175));
+  document.getElementById('locked1-avatar').appendChild(buildBlobSVG(80,100,'#B8D4E8','#7BAFD4'));
+  document.getElementById('locked2-avatar').appendChild(buildBlobSVG(80,100,'#E8D4F0','#C49EDB'));
+  document.getElementById('locked3-avatar').appendChild(buildBlobSVG(80,100,'#D4E8D4','#8CB88C'));
+  // Character Profile avatar
+  var cpAvatar=document.getElementById('char-profile-avatar');
+  if(cpAvatar)cpAvatar.appendChild(buildLumiSVG(48,60));
+  // Character Profile banner art
+  var cpBanner=document.getElementById('char-profile-banner-art');
+  if(cpBanner)cpBanner.appendChild(buildLumiSVG(100,125));
+  // Chats list avatar
+  var chatsAvatar=document.getElementById('chats-lumi-avatar');
+  if(chatsAvatar)chatsAvatar.insertBefore(buildLumiSVG(40,40),chatsAvatar.firstChild);
+  buildDiscoverGrid();
+}
+
+/* ═══ Navigation ═══ */
+function goTo(id){var s=document.querySelectorAll('.screen');for(var i=0;i<s.length;i++)s[i].classList.remove('active');document.getElementById(id).classList.add('active');}
+setTimeout(function(){goTo('welcome');},2000);
+
+/* ═══ Questions ═══ */
+function selectQ1(v){wakeTime={early:'6:30am',mid:'8:00am',late:'10:00am'}[v];setTimeout(function(){goTo('q2');},300);}
+function selectQ2(){setTimeout(function(){goTo('characters');},300);}
+
+/* ═══ Character Select ═══ */
+function selectCharacter(){var c=document.getElementById('lumi-card');c.style.transform='scale(0.97)';c.style.opacity='0.9';setTimeout(function(){c.style.transform='';c.style.opacity='';goTo('chat');startChat();},400);}
+
+/* ═══ Chat Engine ═══ */
+function chatEngine(cid){
+  var con=document.getElementById(cid);
+  return{
+    addBot:function(t){return new Promise(function(res){
+      var av=document.getElementById(cid.replace('messages','chat')+'-avatar');
+      var ty=document.createElement('div');ty.className='typing';
+      for(var i=0;i<3;i++)ty.appendChild(document.createElement('span'));
+      con.appendChild(ty);sc(con);
+      if(av)av.classList.add('thinking');
+      setTimeout(function(){
+        ty.remove();
+        if(av){av.classList.remove('thinking');av.classList.add('responding');setTimeout(function(){av.classList.remove('responding');},650);}
+        var d=document.createElement('div');d.className='msg bot';d.textContent=t;con.appendChild(d);sc(con);res();
+      },Math.min(600+t.length*15,1800));
+    });},
+    addUser:function(t){var d=document.createElement('div');d.className='msg user';d.textContent=t;con.appendChild(d);sc(con);},
+    addMemoryPill:function(t){
+      var p=document.createElement('div');p.className='memory-pill';
+      var icon=document.createElement('span');icon.className='memory-pill-icon';icon.textContent='🧠';
+      p.appendChild(icon);p.appendChild(document.createTextNode(t));
+      con.appendChild(p);sc(con);
+    },
+    addSummary:function(items){
+      var card=document.createElement('div');card.className='summary-card';
+      items.forEach(function(it){
+        var row=document.createElement('div');row.className='summary-item';
+        var icon=document.createElement('span');icon.className='summary-item-icon';icon.textContent=it.icon;
+        var text=document.createElement('span');text.className='summary-item-text'+(it.done?' done':'');text.textContent=it.text;
+        row.appendChild(icon);row.appendChild(text);card.appendChild(row);
+      });
+      con.appendChild(card);sc(con);
+    },
+    showChoices:function(ch,cb){
+      var w=document.createElement('div');w.className='chat-choices';
+      ch.forEach(function(c){var b=document.createElement('button');b.className='chat-choice';b.textContent=c;
+        b.addEventListener('click',function(){w.remove();var d=document.createElement('div');d.className='msg user';d.textContent=c;con.appendChild(d);sc(con);cb(c);});
+        w.appendChild(b);});
+      con.appendChild(w);sc(con);
+    }
+  };
+}
+function sc(el){setTimeout(function(){el.scrollTop=el.scrollHeight;},50);}
+function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
+
+var chat1=null,chatInput=document.getElementById('chat-input'),inputArea=document.getElementById('input-area');
+chatInput.addEventListener('keydown',function(e){if(e.key==='Enter')sendUserInput();});
+function sendUserInput(){var v=chatInput.value.trim();if(!v)return;chat1.addUser(v);chatInput.value='';inputArea.classList.add('hidden');if(inputCallback){var cb=inputCallback;inputCallback=null;cb(v);}}
+
+/* ═══ Onboarding Chat ═══ */
+async function startChat(){
+  chat1=chatEngine('messages');inputArea.classList.add('hidden');
+  await sleep(600);await chat1.addBot("Hi there! 👋");
+  await sleep(400);await chat1.addBot("I'm Lumi, and I'm so happy to meet you.");
+  await sleep(300);await chat1.addBot("I'll be here every day — to check in, remember the little things, and make sure you're doing okay.");
+  await sleep(500);await chat1.addBot("But first, what should I call you?");
+  inputArea.classList.remove('hidden');chatInput.placeholder='Type your name...';chatInput.value='';chatInput.focus();
+  inputCallback=async function(name){
+    userName=name;
+    await sleep(300);await chat1.addBot(userName+"! I love that. I won't forget it. ✨");
+    await sleep(400);await chat1.addBot("When do you usually wake up?");
+    chat1.showChoices(["🌅 Before 7am","☀️ 7–9am","🌙 After 9am"],async function(c){
+      if(c.indexOf("Before")>=0)wakeTime="6:30am";else if(c.indexOf("7")>=0)wakeTime="8:00am";else wakeTime="10:00am";
+      var r=c.indexOf("Before")>=0?"An early bird! I'll match your energy. 🌅":c.indexOf("7")>=0?"A solid morning rhythm. I'll be right on time. ☀️":"A fellow night owl? I'll let you sleep in. 🌙";
+      await sleep(300);await chat1.addBot(r);
+      await sleep(400);await chat1.addBot("How are you feeling right now, "+userName+"?");
+      chat1.showChoices(["😊 Feeling good!","😴 A bit tired","😰 Kind of anxious"],async function(m){
+        userMood=m.indexOf("good")>=0?"good":m.indexOf("tired")>=0?"tired":"anxious";
+        var mr=userMood==="good"?"That's wonderful! Let's keep that going. 🌟":userMood==="tired"?"I hope I can make your day brighter. 💛":"I'm right here with you. One step at a time. 💛";
+        await sleep(300);await chat1.addBot(mr);
+        await sleep(500);await chat1.addBot("I already feel like I know you a little better.");
+        await sleep(500);await chat1.addBot("Want me to check on you tomorrow morning?");
+        chat1.showChoices(["Yes, please! 💛","Maybe later"],async function(a){
+          agreedTomorrow=a.indexOf("Yes")>=0;
+          await sleep(300);
+          if(agreedTomorrow)await chat1.addBot("I'll be here at "+wakeTime+". Sleep well, "+userName+". 💛");
+          else await chat1.addBot("No pressure! I'll be right here. See you soon, "+userName+"! 💛");
+          setTimeout(function(){
+            document.getElementById('closing-msg').textContent="Your character is alive. 💛";
+            document.getElementById('closing-sub').textContent=agreedTomorrow?"Lumi will check in at "+wakeTime:"Lumi will be here when you need her";
+            goTo('closing');
+          },2500);
+        });
+      });
+    });
+  };
+}
+
+/* ═══ Closing → Home ═══ */
+function goToHome(){prevTemp=36.5;bondTemp=36.5;lifeData={tasks:[],meals:[],mood:[],memories:[],routines:[]};seedOnboardingData();goTo('home');setupHome('evening');setTimeout(showEveningBubble,1200);}
+
+/* ═══ Home ═══ */
+function setupHome(state){
+  homeState=state;
+  var bg=document.getElementById('home-bg'),time=document.getElementById('home-time'),date=document.getElementById('home-date'),
+      status=document.getElementById('home-status'),wrap=document.getElementById('home-char-wrap'),
+      skip=document.getElementById('skip-btn'),tabbar=document.getElementById('tab-bar'),
+      moon=document.getElementById('deco-moon'),sun=document.getElementById('deco-sun'),
+      stars=document.querySelectorAll('.star');
+  var bgState=(state==='night2')?'night2':(state==='afternoon')?'afternoon':state;
+  bg.className='home-bg '+bgState;
+  wrap.className='home-character-wrap '+(state==='night2'?'evening':state==='afternoon'?'daytime':state);
+  clearBubble();
+  var isDark=state==='evening'||state==='night2';
+  var wg=document.getElementById('widget-grid');
+  tempColor(isDark);
+  if(state==='evening'){
+    setTemp(36.8);wg.classList.add('hidden');
+    time.className='home-time dark';time.textContent='11:30 PM';
+    date.className='home-date dark';date.textContent='Monday, March 23';
+    status.className='home-status dark';status.textContent=agreedTomorrow?'Getting ready for '+wakeTime+'...':'Here whenever you need her...';
+    skip.style.color='rgba(255,255,255,0.45)';skip.classList.remove('hidden');
+    tabbar.className='tab-bar dark';setTabTheme('dark');
+    moon.classList.remove('hidden');sun.classList.add('hidden');
+    for(var i=0;i<stars.length;i++)stars[i].style.display='block';
+  }else if(state==='morning'){
+    setTemp(36.7);wg.classList.add('hidden'); // natural overnight cooling
+    time.className='home-time light';time.textContent=wakeTime.replace('am',' AM');
+    date.className='home-date light';date.textContent='Tuesday, March 24';
+    status.className='home-status light';status.textContent='Tap to chat ☀️';
+    skip.classList.add('hidden');tabbar.className='tab-bar';setTabTheme('light');
+    moon.classList.add('hidden');sun.classList.remove('hidden');
+    for(var i=0;i<stars.length;i++)stars[i].style.display='none';
+    wrap.style.cursor='pointer';wrap.onclick=function(){wrap.onclick=null;goTo('chat-day2');startDay2Chat();};
+  }else if(state==='daytime'){
+    setTemp(37.2); // morning conv completed
+    time.className='home-time light';time.textContent='10:30 AM';
+    date.className='home-date light';date.textContent='Tuesday, March 24';
+    status.className='home-status light';status.textContent='Lumi is keeping an eye on your day...';
+    skip.textContent='Skip to afternoon →';skip.style.color='#6B5A60';skip.classList.remove('hidden');
+    skip.onclick=function(){showPushAndGo('3:15 PM','Lumi','How did it go?','chat-afternoon',startAfternoonChat);};
+    tabbar.className='tab-bar';setTabTheme('light');
+    moon.classList.add('hidden');sun.classList.add('hidden');
+    for(var i=0;i<stars.length;i++)stars[i].style.display='none';
+    var db=document.getElementById('discover-badge');if(db)db.classList.add('show');
+    setTimeout(function(){showHomeBubble("Keeping an eye on your day. Tap 'Your Life' below to see your data. ☀️");},800);
+  }else if(state==='afternoon'){
+    setTemp(37.5); // afternoon check-in
+    time.className='home-time light';time.textContent='4:30 PM';
+    date.className='home-date light';date.textContent='Tuesday, March 24';
+    status.className='home-status light';status.textContent='Afternoon check-in done.';
+    skip.textContent='Skip to evening →';skip.style.color='#6B5A60';skip.classList.remove('hidden');
+    skip.onclick=function(){showPushAndGo('9:00 PM','Lumi',"Let's wrap up the day ✨",'chat-evening',startEveningChat);};
+    tabbar.className='tab-bar';setTabTheme('light');
+    moon.classList.add('hidden');sun.classList.add('hidden');
+    for(var i=0;i<stars.length;i++)stars[i].style.display='none';
+    setTimeout(function(){showHomeBubble("I'll be back tonight to wrap up your day. 💛");},800);
+  }else if(state==='night2'){
+    setTemp(37.8); // full day together
+    time.className='home-time dark';time.textContent='10:30 PM';
+    date.className='home-date dark';date.textContent='Tuesday, March 24';
+    status.className='home-status dark';status.textContent='Day complete. Sleep well.';
+    skip.classList.add('hidden');
+    tabbar.className='tab-bar dark';setTabTheme('dark');
+    moon.classList.remove('hidden');sun.classList.add('hidden');
+    for(var i=0;i<stars.length;i++)stars[i].style.display='block';
+    bg.className='home-bg night2';wrap.className='home-character-wrap evening';
+    setTimeout(function(){showHomeBubble("3 conversations today. I feel like I know "+userName+" a little better now. 🌙");},800);
+  }else{
+    time.className='home-time light';time.textContent='10:30 AM';
+    date.className='home-date light';date.textContent='Tuesday, March 24';
+    status.className='home-status light';status.textContent='Lumi is thinking of you...';
+    skip.classList.add('hidden');tabbar.className='tab-bar';setTabTheme('light');
+    moon.classList.add('hidden');sun.classList.add('hidden');
+    for(var i=0;i<stars.length;i++)stars[i].style.display='none';
+  }
+  setTimeout(function(){renderTemp(homeState!=='evening'&&homeState!=='morning');},400);
+}
+function showHomeBubble(text){
+  clearBubble();var b=document.getElementById('home-bubble');
+  var n=document.createElement('div');n.className='bubble-name';
+  var dot=document.createElement('span');dot.className='alive-dot';n.appendChild(dot);
+  n.appendChild(document.createTextNode('Lumi'));b.appendChild(n);
+  var t=document.createElement('div');t.textContent=text;b.appendChild(t);
+}
+function showPushAndGo(time,title,body,chatId,chatFn){
+  document.getElementById('push-time').textContent=time;
+  document.getElementById('push-body').textContent=body;
+  document.getElementById('push-date').textContent='Tuesday, March 24';
+  goTo('push-sim');
+  document.getElementById('push-sim').onclick=function(){
+    document.getElementById('push-sim').onclick=null;
+    var mc=document.getElementById(chatId.replace('chat-','messages'));
+    if(!mc) mc=document.getElementById(chatId==='chat-afternoon'?'messages3':'messages4');
+    if(mc) while(mc.firstChild) mc.removeChild(mc.firstChild);
+    goTo(chatId);chatFn();
+  };
+}
+function setTabTheme(t){var l=document.querySelectorAll('#tab-bar .tab-label');for(var i=0;i<l.length;i++)l[i].className='tab-label '+t;}
+function showEveningBubble(){
+  clearBubble();var b=document.getElementById('home-bubble');
+  var n=document.createElement('div');n.className='bubble-name';
+  var dot=document.createElement('span');dot.className='alive-dot';n.appendChild(dot);
+  n.appendChild(document.createTextNode('Lumi'));b.appendChild(n);
+  var t=document.createElement('div');
+  t.textContent=userMood==='good'?"You were in such a good mood today! Sleep well. 🌙":
+    userMood==='tired'?"Get some rest tonight, "+userName+". Tomorrow starts gently. 🌙":
+    "I hope you feel better now, "+userName+". Sleep well. 🌙";
+  b.appendChild(t);
+}
+function clearBubble(){var b=document.getElementById('home-bubble');while(b.firstChild)b.removeChild(b.firstChild);}
+
+/* ═══ Push Sim ═══ */
+function skipToMorning(){
+  document.getElementById('push-time').textContent=wakeTime.replace('am','').replace('pm','');
+  document.getElementById('push-body').textContent=agreedTomorrow
+    ?"Good morning, "+userName+"! Did you sleep well? ☀️"
+    :"I know I said no pressure, but... good morning, "+userName+"! 😊";
+  goTo('push-sim');
+  document.getElementById('push-sim').onclick=function(){
+    document.getElementById('push-sim').onclick=null;goTo('home');setupHome('morning');
+    setTimeout(function(){clearBubble();var b=document.getElementById('home-bubble');
+      var n=document.createElement('div');n.className='bubble-name';
+      var dot=document.createElement('span');dot.className='alive-dot';n.appendChild(dot);
+      n.appendChild(document.createTextNode('Lumi'));b.appendChild(n);
+      var t=document.createElement('div');t.textContent="Tap me to chat! I remember everything. ✨";b.appendChild(t);
+    },800);
+  };
+}
+
+/* ═══ Day 2 Chat (3.3 — enhanced with life management) ═══ */
+async function startDay2Chat(){
+  var c2=chatEngine('messages2');
+  await sleep(600);await c2.addBot("Good morning, "+userName+"! ☀️");await sleep(400);
+  await c2.addBot(userMood==='good'?"You were in such a good mood yesterday — hope today's even better!":
+    userMood==='tired'?"You said you were tired yesterday. Did you get some rest?":
+    "Yesterday you seemed a bit anxious. How are you feeling this morning?");
+  c2.addMemoryPill("Remembered: yesterday's mood");
+  c2.showChoices(userMood==='good'?["Even better today!","About the same","Not great today..."]:
+    userMood==='tired'?["Much better!","Still a bit tired","Worse actually..."]:
+    ["Better now!","Still anxious","It's getting worse..."],async function(a){
+    var pos=a.indexOf("better")>=0||a.indexOf("Better")>=0||a.indexOf("Even")>=0||a.indexOf("same")>=0;
+    await sleep(300);await c2.addBot(pos?"That's great to hear! 🌟":"That's okay. I'm here with you. 💛");
+    await sleep(400);await c2.addBot("What's on your plate today?");
+    c2.showChoices(["Meeting at 3pm 💼","Gym after work 🏃","Just a chill day 😌"],async function(p){
+      if(p.indexOf("Meeting")>=0){userPlan='meeting';userPlanLabel='Meeting at 3pm';}
+      else if(p.indexOf("Gym")>=0){userPlan='gym';userPlanLabel='Gym after work';}
+      else{userPlan='chill';userPlanLabel='Chill day';}
+      await sleep(200);c2.addMemoryPill("Saved: "+userPlanLabel);
+      await sleep(400);
+      if(userPlan==='meeting'){
+        await c2.addBot("Meeting at 3pm, got it. Want me to give you a heads-up before?");
+        c2.showChoices(["Yes, 15 min before","I'll be fine"],async function(r){
+          await sleep(300);await c2.addBot(r.indexOf("Yes")>=0?"I'll ping you at 2:45. You've got this! 💪":"Alright! You've got this. 💪");
+          await finishMorningChat(c2);
+        });
+      }else if(userPlan==='gym'){
+        await c2.addBot("Nice! I'll check in later to make sure you go. 😊");
+        await finishMorningChat(c2);
+      }else{
+        await c2.addBot("Nice. Sometimes the best days are unplanned. 😊");
+        await finishMorningChat(c2);
+      }
+    });
+  });
+}
+async function finishMorningChat(c2){
+  await sleep(500);await c2.addBot("Have a wonderful morning, "+userName+"! 💛");
+  seedDay2MorningData();
+  setTimeout(function(){goTo('home');setupHome('daytime');},2500);
+}
+
+/* ═══ Afternoon Chat (3.6) ═══ */
+async function startAfternoonChat(){
+  var c3=chatEngine('messages3');
+  await sleep(600);
+  if(userPlan==='meeting'){
+    await c3.addBot("Hey! Your meeting should be wrapping up. How did it go?");
+    c3.addMemoryPill("Recalled: Meeting at 3pm");
+    c3.showChoices(["Went well! 🎉","It was rough 😮‍💨","Still going..."],async function(a){
+      afternoonDone=a.indexOf("well")>=0||a.indexOf("Still")>=0;
+      await sleep(300);
+      await c3.addBot(a.indexOf("well")>=0?"Awesome! Glad to hear it. 🌟":a.indexOf("rough")>=0?"Those happen. You made it through — that counts. 💛":"Hang in there! Almost done. 💪");
+      await finishAfternoonChat(c3);
+    });
+  }else if(userPlan==='gym'){
+    await c3.addBot("Hey! Still planning to hit the gym later? 🏃");
+    c3.addMemoryPill("Recalled: Gym after work");
+    c3.showChoices(["Definitely!","Hmm maybe skip today","Already went!"],async function(a){
+      afternoonDone=a.indexOf("skip")<0;
+      await sleep(300);
+      await c3.addBot(a.indexOf("skip")>=0?"No pressure at all. Rest is productive too. 💛":a.indexOf("Already")>=0?"Look at you! Nice work. 💪":"Love the energy! 💪");
+      await finishAfternoonChat(c3);
+    });
+  }else{
+    await c3.addBot("Hey "+userName+"! How's your chill day going? 😊");
+    c3.showChoices(["Really relaxing 🧘","Got bored, did stuff","Napped all day 😴"],async function(a){
+      afternoonDone=true;
+      await sleep(300);
+      await c3.addBot(a.indexOf("relax")>=0?"That's the way. 🧘":a.indexOf("bored")>=0?"Sometimes boredom sparks the best ideas! ✨":"Naps are underrated. 💛");
+      await finishAfternoonChat(c3);
+    });
+  }
+}
+async function finishAfternoonChat(c3){
+  await sleep(400);await c3.addBot("Talk more tonight? I'll check in. 💛");
+  seedDay2AfternoonData();
+  setTimeout(function(){goTo('home');setupHome('afternoon');},2000);
+}
+
+/* ═══ Evening Chat (3.7) ═══ */
+async function startEveningChat(){
+  var c4=chatEngine('messages4');
+  await sleep(600);await c4.addBot("Hey you. 💛 What a day we had.");await sleep(500);
+  await c4.addBot("Let me pull up what I remember:");
+  await sleep(300);
+  var items=[];
+  if(userPlan==='meeting') items.push({icon:afternoonDone?'✅':'📋',text:'Meeting at 3pm',done:afternoonDone});
+  else if(userPlan==='gym') items.push({icon:afternoonDone?'✅':'🏃',text:'Gym',done:afternoonDone});
+  else items.push({icon:'✅',text:'Chill day',done:true});
+  items.push({icon:'💬',text:'Morning check-in',done:true});
+  items.push({icon:'💬',text:'Afternoon check-in',done:true});
+  c4.addSummary(items);
+  await sleep(800);
+  if(!afternoonDone&&userPlan!=='chill'){
+    await c4.addBot("Want to try "+userPlanLabel.toLowerCase()+" again tomorrow?");
+    c4.showChoices(["Yeah, move it","Nah, it's okay"],async function(a){
+      if(a.indexOf("move")>=0){c4.addMemoryPill("Moved to tomorrow: "+userPlanLabel);await sleep(300);await c4.addBot("Done! I'll remind you. No stress. 😊");}
+      else{await sleep(300);await c4.addBot("No worries at all. 😊");}
+      await finishEveningChat(c4);
+    });
+  }else{await finishEveningChat(c4);}
+}
+async function finishEveningChat(c4){
+  await sleep(400);await c4.addBot("How are you feeling tonight, "+userName+"?");
+  c4.showChoices(["Good, productive day!","Tired but okay","Meh 😐"],async function(m){
+    c4.addMemoryPill("Mood: "+m.split(",")[0].toLowerCase());
+    seedDay2EveningData(m);
+    await sleep(300);
+    await c4.addBot(m.indexOf("Good")>=0?"I can tell. You were different today — lighter. I like that. 🌟":m.indexOf("Tired")>=0?"You showed up anyway. That's the "+userName+" I know. 💛":"Some days just are what they are. But hey — I'm still here. 💛");
+    await sleep(500);
+    c4.addMemoryPill("Growth: bond deepened — Lumi speaks more personally now");
+    await sleep(400);await c4.addBot("Sleep well, "+userName+". I'll be thinking about today. See you at "+wakeTime+". 🌙");
+    setTimeout(function(){goTo('home');setupHome('night2');},2500);
+  });
+}
+
+/* ═══ Mini-App System ═══ */
+var lifeData={
+  tasks:[],meals:[],mood:[],memories:[],routines:[]
+};
+function addLifeData(domain,item){
+  if(!lifeData[domain])lifeData[domain]=[];
+  lifeData[domain].push(item);
+}
+
+function renderWidgets(isDark){
+  var grid=document.getElementById('widget-grid');
+  while(grid.firstChild)grid.removeChild(grid.firstChild);
+  var theme=isDark?'dark':'light';
+
+  // Today widget
+  var todayItems=lifeData.tasks.filter(function(t){return t.day===2;});
+  var w1=makeWidget('📋','Today',todayItems.length?todayItems.length+' item'+(todayItems.length>1?'s':''):'Tell Lumi your plans',theme,todayItems.length>0);
+  w1.addEventListener('click',function(){openMiniApp('today');});
+  grid.appendChild(w1);
+
+  // Mood widget
+  var latestMood=lifeData.mood.length?lifeData.mood[lifeData.mood.length-1]:null;
+  var w2=makeWidget('💛','Mood',latestMood?latestMood.label:'Just chat',theme,!!latestMood);
+  w2.addEventListener('click',function(){openMiniApp('memories');});
+  grid.appendChild(w2);
+
+  // Memories widget
+  var memCount=lifeData.memories.length;
+  var w3=makeWidget('🧠','Memories',memCount?memCount+' thing'+(memCount>1?'s':'')+' remembered':'Start chatting',theme,memCount>0);
+  w3.addEventListener('click',function(){openMiniApp('memories');});
+  grid.appendChild(w3);
+
+  // Extensible slot
+  var w4=makeWidget('','More','Coming soon',theme,false);
+  w4.classList.add('empty');
+  grid.appendChild(w4);
+
+  // "Your Life" link
+  var link=document.createElement('button');
+  link.className='btn-ghost';link.style.cssText='width:100%;margin-top:var(--space-xs);font-size:13px;color:var(--tint);';
+  link.textContent='See everything →';
+  link.addEventListener('click',function(){switchTab('life');});
+  grid.appendChild(link);
+
+  grid.classList.remove('hidden');
+}
+
+function makeWidget(icon,title,value,theme,active){
+  var w=document.createElement('div');
+  w.className='widget'+(theme==='dark'?' dark':'');
+  if(icon){var ic=document.createElement('div');ic.className='widget-icon';ic.textContent=icon;w.appendChild(ic);}
+  var t=document.createElement('div');t.className='widget-title '+theme;t.textContent=title;w.appendChild(t);
+  var v=document.createElement('div');v.className='widget-value '+theme;v.textContent=value;w.appendChild(v);
+  if(!active&&!icon){var el=document.createElement('div');el.className='widget-empty-label';el.textContent='extensible';w.appendChild(el);}
+  return w;
+}
+
+function openMiniApp(name){
+  if(name==='today') renderTodayApp();
+  else if(name==='memories') renderMemoriesApp();
+  else if(name==='meals') renderMealsApp();
+  goTo('miniapp-'+name);
+}
+
+function renderTodayApp(){
+  var con=document.getElementById('miniapp-today-content');
+  var empty=document.getElementById('miniapp-today-empty');
+  while(con.firstChild)con.removeChild(con.firstChild);
+  var tasks=lifeData.tasks.filter(function(t){return t.day===2;});
+  if(!tasks.length){empty.classList.remove('hidden');return;}
+  empty.classList.add('hidden');
+
+  var sec=document.createElement('div');sec.className='miniapp-section';
+  var secTitle=document.createElement('div');secTitle.className='miniapp-section-title';secTitle.textContent='Schedule & Tasks';
+  sec.appendChild(secTitle);
+  tasks.forEach(function(t){
+    var item=document.createElement('div');item.className='miniapp-item'+(t.done?' done':'');
+    var icon=document.createElement('div');icon.className='miniapp-item-icon';
+    icon.style.background=t.done?'#E8F5E9':'var(--tint-soft)';
+    icon.textContent=t.done?'✅':t.icon||'📋';
+    var content=document.createElement('div');content.className='miniapp-item-content';
+    var title=document.createElement('div');title.className='miniapp-item-title';title.textContent=t.text;
+    var meta=document.createElement('div');meta.className='miniapp-item-meta';
+    meta.textContent=t.time||'Anytime';
+    if(t.source)meta.textContent+=' · from conversation';
+    content.appendChild(title);content.appendChild(meta);
+    item.appendChild(icon);item.appendChild(content);
+    sec.appendChild(item);
+  });
+  con.appendChild(sec);
+
+  // Mood section
+  var moodToday=lifeData.mood.filter(function(m){return m.day===2;});
+  if(moodToday.length){
+    var msec=document.createElement('div');msec.className='miniapp-section';
+    var msecTitle=document.createElement('div');msecTitle.className='miniapp-section-title';msecTitle.textContent='Mood';
+    msec.appendChild(msecTitle);
+    moodToday.forEach(function(m){
+      var item=document.createElement('div');item.className='miniapp-item';
+      var icon=document.createElement('div');icon.className='miniapp-item-icon';icon.style.background='#FFF8E1';icon.textContent=m.emoji;
+      var content=document.createElement('div');content.className='miniapp-item-content';
+      var title=document.createElement('div');title.className='miniapp-item-title';title.textContent=m.label;
+      var meta=document.createElement('div');meta.className='miniapp-item-meta';meta.textContent=m.time+' · from conversation';
+      content.appendChild(title);content.appendChild(meta);
+      item.appendChild(icon);item.appendChild(content);
+      msec.appendChild(item);
+    });
+    con.appendChild(msec);
+  }
+}
+
+function renderMemoriesApp(){
+  var con=document.getElementById('miniapp-memories-content');
+  while(con.firstChild)con.removeChild(con.firstChild);
+
+  var categories={};
+  lifeData.memories.forEach(function(m){
+    if(!categories[m.category])categories[m.category]=[];
+    categories[m.category].push(m);
+  });
+  Object.keys(categories).forEach(function(cat){
+    var sec=document.createElement('div');sec.className='miniapp-section';
+    var secTitle=document.createElement('div');secTitle.className='miniapp-section-title';secTitle.textContent=cat;
+    sec.appendChild(secTitle);
+    categories[cat].forEach(function(m){
+      var item=document.createElement('div');item.className='miniapp-item';
+      var icon=document.createElement('div');icon.className='miniapp-item-icon';icon.style.background='var(--tint-soft)';icon.textContent=m.icon;
+      var content=document.createElement('div');content.className='miniapp-item-content';
+      var title=document.createElement('div');title.className='miniapp-item-title';title.textContent=m.text;
+      var meta=document.createElement('div');meta.className='miniapp-item-meta';meta.textContent=m.when;
+      content.appendChild(title);content.appendChild(meta);
+      item.appendChild(icon);item.appendChild(content);
+      sec.appendChild(item);
+    });
+    con.appendChild(sec);
+  });
+}
+
+// Seed data from onboarding conversation
+function seedOnboardingData(){
+  addLifeData('memories',{category:'About You',icon:'👤',text:'Name: '+userName,when:'Day 1 — first conversation'});
+  addLifeData('memories',{category:'About You',icon:'⏰',text:'Wake time: '+wakeTime,when:'Day 1 — first conversation'});
+  addLifeData('memories',{category:'About You',icon:'💛',text:'Mood on Day 1: '+userMood,when:'Day 1 — evening'});
+}
+
+// Seed data from Day 2 conversations
+function seedDay2MorningData(){
+  addLifeData('tasks',{day:2,text:userPlanLabel,time:userPlan==='meeting'?'3:00 PM':userPlan==='gym'?'After work':'All day',icon:userPlan==='meeting'?'💼':userPlan==='gym'?'🏃':'😌',done:false,source:true});
+  addLifeData('tasks',{day:2,text:'Morning check-in with Lumi',time:'Morning',icon:'💬',done:true,source:true});
+}
+function seedDay2AfternoonData(){
+  if(userPlan!=='chill'){
+    var t=lifeData.tasks.find(function(t){return t.text===userPlanLabel;});
+    if(t)t.done=afternoonDone;
+  }
+  addLifeData('tasks',{day:2,text:'Afternoon check-in',time:'Afternoon',icon:'💬',done:true,source:true});
+}
+function seedDay2EveningData(moodLabel){
+  addLifeData('tasks',{day:2,text:'Evening wrap-up',time:'Evening',icon:'💬',done:true,source:true});
+  addLifeData('mood',{day:2,emoji:moodLabel.indexOf('Good')>=0?'😊':moodLabel.indexOf('Tired')>=0?'😴':'😐',label:moodLabel.split(',')[0],time:'Evening'});
+  addLifeData('memories',{category:'Mood',icon:'💛',text:'Day 2 evening: '+moodLabel.split(',')[0],when:'Day 2 — evening wrap-up'});
+}
+
+/* ═══ Life Grid & Store ═══ */
+var mealsInstalled=false;
+
+var allMiniApps=[
+  {id:'today',icon:'📋',name:'Today',desc:'Schedule & tasks',active:true},
+  {id:'calendar',icon:'📅',name:'Calendar',desc:'Events over time',active:true},
+  {id:'tasks',icon:'✅',name:'Tasks',desc:'Your todo list',active:true},
+  {id:'mood',icon:'💛',name:'Mood',desc:'How you feel',active:true},
+  {id:'meals',icon:'🍽',name:'Meals',desc:'What you eat',active:false},
+  {id:'routines',icon:'🔄',name:'Routines',desc:'Daily habits',active:true},
+  {id:'health',icon:'💪',name:'Health',desc:'Sleep & energy',active:true},
+  {id:'memories',icon:'🧠',name:'Memories',desc:'What Lumi knows',active:true},
+];
+
+var storeMiniApps=[
+  {id:'meals',icon:'🍽',name:'Meals',desc:'Track what you eat through conversation. Lumi asks about meals at natural times.',tag:'Health & Wellness',bg:'#FFF5E6'},
+  {id:'fitness',icon:'🏃',name:'Fitness',desc:'Log workouts by telling your character about them.',tag:'Health & Wellness',bg:'#E8F5E9'},
+  {id:'journal',icon:'📝',name:'Journal',desc:'Auto-generated reflections from evening conversations.',tag:'Lifestyle',bg:'#F3E5F5'},
+  {id:'finance',icon:'💰',name:'Finance',desc:'Mention spending in conversation to build awareness.',tag:'Productivity',bg:'#FFF8E1'},
+  {id:'reading',icon:'📚',name:'Reading',desc:'Track books and articles mentioned in conversation.',tag:'Lifestyle',bg:'#E3F2FD'},
+  {id:'goals',icon:'🎯',name:'Goals',desc:'Set and track long-term goals through dialogue.',tag:'Productivity',bg:'#FBE9E7'},
+];
+
+function renderLifeGrid(){
+  var con=document.getElementById('life-grid-cards');
+  while(con.firstChild)con.removeChild(con.firstChild);
+  var active=allMiniApps.filter(function(a){return a.active||(a.id==='meals'&&mealsInstalled);});
+  active.forEach(function(app){
+    var card=document.createElement('div');card.className='life-card';
+    card.addEventListener('click',function(){
+      if(app.id==='today')openMiniApp('today');
+      else if(app.id==='memories')openMiniApp('memories');
+      else if(app.id==='meals'&&mealsInstalled)openMiniApp('meals');
+    });
+    var icon=document.createElement('div');icon.className='life-card-icon';icon.textContent=app.icon;
+    var name=document.createElement('div');name.className='life-card-name';name.textContent=app.name;
+    var desc=document.createElement('div');desc.className='life-card-desc';desc.textContent=app.desc;
+    card.appendChild(icon);card.appendChild(name);card.appendChild(desc);
+    // Data count
+    if(app.id==='today'&&lifeData.tasks.length){
+      var c=document.createElement('div');c.className='life-card-count';
+      c.textContent=lifeData.tasks.filter(function(t){return t.day===2;}).length+' items today';
+      card.appendChild(c);
+    }
+    if(app.id==='memories'&&lifeData.memories.length){
+      var c=document.createElement('div');c.className='life-card-count';
+      c.textContent=lifeData.memories.length+' saved';card.appendChild(c);
+    }
+    if(app.id==='meals'&&lifeData.meals&&lifeData.meals.length){
+      var c=document.createElement('div');c.className='life-card-count';
+      c.textContent=lifeData.meals.length+' meal'+(lifeData.meals.length>1?'s':'');card.appendChild(c);
+    }
+    con.appendChild(card);
+  });
+  // Add card
+  var add=document.createElement('div');add.className='life-card add';
+  add.addEventListener('click',function(){goTo('miniapp-store');renderStore();});
+  var addIcon=document.createElement('div');addIcon.className='life-card-icon';addIcon.textContent='+';
+  var addName=document.createElement('div');addName.className='life-card-name';addName.textContent='Add More';
+  add.appendChild(addIcon);add.appendChild(addName);
+  con.appendChild(add);
+}
+
+function renderStore(){
+  var con=document.getElementById('store-cards');
+  while(con.firstChild)con.removeChild(con.firstChild);
+  storeMiniApps.forEach(function(app){
+    var installed=(app.id==='meals'&&mealsInstalled);
+    var alreadyActive=allMiniApps.find(function(a){return a.id===app.id&&a.active;});
+    var card=document.createElement('div');card.className='store-card';
+    var icon=document.createElement('div');icon.className='store-card-icon';icon.style.background=app.bg;icon.textContent=app.icon;
+    var info=document.createElement('div');info.className='store-card-info';
+    var name=document.createElement('div');name.className='store-card-name';name.textContent=app.name;
+    var desc=document.createElement('div');desc.className='store-card-desc';desc.textContent=app.desc;
+    var tag=document.createElement('div');tag.className='store-card-tag';tag.textContent=app.tag;
+    info.appendChild(name);info.appendChild(desc);info.appendChild(tag);
+    card.appendChild(icon);card.appendChild(info);
+    if(installed||alreadyActive){
+      var badge=document.createElement('span');badge.className='store-installed';badge.textContent='✓ Added';
+      card.appendChild(badge);
+    }else{
+      var btn=document.createElement('button');btn.className='store-add-btn';btn.textContent='Add';
+      if(app.id==='meals'){
+        btn.addEventListener('click',function(){installMeals(btn);});
+      }
+      card.appendChild(btn);
+    }
+    con.appendChild(card);
+  });
+}
+
+function installMeals(btn){
+  mealsInstalled=true;
+  btn.textContent='✓ Added';btn.className='store-add-btn added';btn.disabled=true;
+  // Trigger Lumi detection after brief delay
+  setTimeout(function(){
+    showPushAndGo('12:30 PM','Lumi','I noticed you added Meals! Want me to start tracking what you eat? 🍽','chat-meals',startMealsChat);
+  },800);
+}
+
+/* ═══ Meals Chat (5.2) ═══ */
+async function startMealsChat(){
+  var c5=chatEngine('messages5');
+  await sleep(600);
+  await c5.addBot("Hey "+userName+"! I noticed you added Meals. 🍽");
+  await sleep(400);
+  await c5.addBot("Want me to start checking in about what you eat? I promise I won't judge. 😊");
+  c5.showChoices(["Yes please!","Maybe just lunch & dinner"],async function(a){
+    await sleep(300);
+    if(a.indexOf("Yes")>=0){
+      await c5.addBot("Great! I'll ask around mealtimes. Speaking of which...");
+    }else{
+      await c5.addBot("Got it, lunch and dinner only. No pressure on breakfast. Speaking of which...");
+    }
+    await sleep(400);
+    await c5.addBot("Did you eat lunch today?");
+    c5.showChoices(["Had a sandwich 🥪","Ramen again 🍜","Skipped lunch"],async function(meal){
+      if(meal.indexOf("Skipped")>=0){
+        await sleep(300);
+        await c5.addBot("That's okay! Try to grab something later if you can. 💛");
+        addLifeData('meals',{day:2,type:'Lunch',what:'Skipped',time:'12:30 PM',emoji:'⏭'});
+      }else{
+        var food=meal.indexOf("sandwich")>=0?"Sandwich":"Ramen";
+        var emoji=meal.indexOf("sandwich")>=0?"🥪":"🍜";
+        c5.addMemoryPill("Saved to Meals: Lunch — "+food);
+        await sleep(300);
+        await c5.addBot(food==="Ramen"?"Classic choice! No judgment, as promised. 🍜":"Quick and easy, nice. 🥪");
+        addLifeData('meals',{day:2,type:'Lunch',what:food,time:'12:30 PM',emoji:emoji});
+      }
+      addLifeData('memories',{category:'Meals',icon:'🍽',text:'Lunch: '+(meal.indexOf("Skipped")>=0?'Skipped':meal.indexOf("sandwich")>=0?'Sandwich':'Ramen'),when:'Day 2 — first meal check-in'});
+      await sleep(400);
+      await c5.addBot("I'll check in about dinner tonight. Enjoy your afternoon! ☀️");
+      setTimeout(function(){goTo('home');setupHome('afternoon');},2000);
+    });
+  });
+}
+
+function renderMealsApp(){
+  var con=document.getElementById('miniapp-meals-content');
+  var empty=document.getElementById('miniapp-meals-empty');
+  while(con.firstChild)con.removeChild(con.firstChild);
+  if(!lifeData.meals||!lifeData.meals.length){empty.classList.remove('hidden');return;}
+  empty.classList.add('hidden');
+  var sec=document.createElement('div');sec.className='miniapp-section';
+  var secTitle=document.createElement('div');secTitle.className='miniapp-section-title';secTitle.textContent='Today';
+  sec.appendChild(secTitle);
+  lifeData.meals.forEach(function(m){
+    var item=document.createElement('div');item.className='miniapp-item';
+    var icon=document.createElement('div');icon.className='miniapp-item-icon';icon.style.background='#FFF5E6';icon.textContent=m.emoji;
+    var content=document.createElement('div');content.className='miniapp-item-content';
+    var title=document.createElement('div');title.className='miniapp-item-title';title.textContent=m.type+': '+m.what;
+    var meta=document.createElement('div');meta.className='miniapp-item-meta';meta.textContent=m.time+' · from conversation';
+    content.appendChild(title);content.appendChild(meta);
+    item.appendChild(icon);item.appendChild(content);
+    sec.appendChild(item);
+  });
+  con.appendChild(sec);
+}
+
+/* ═══ Tab Nav ═══ */
+function switchTab(t){
+  if(t==='home')goTo('home');
+  else if(t==='life'){renderLifeGrid();goTo('life-grid');}
+  else if(t==='discover'){buildDiscoverGrid();goTo('discover');}
+  else if(t==='create'){goTo('discover');} /* Create tab — placeholder, goes to Discover for now */
+  else if(t==='chats'){
+    var ct=document.getElementById('chats-temp');if(ct)ct.textContent=bondTemp.toFixed(1)+'°C';
+    goTo('chats-list');
+  }
+  else if(t==='profile'){
+    var pn=document.getElementById('profile-name');if(pn)pn.textContent=userName||'Demo';
+    var pt=document.getElementById('profile-temp');if(pt)pt.textContent=bondTemp.toFixed(1)+'°C';
+    goTo('profile');
+  }
+}
+
+/* ═══ Discover ═══ */
+var discoverChars=[
+  {name:'Lumi',creator:'@netty',c1:'#FDDCC8',c2:'#FFF5EE',grad:'linear-gradient(180deg,#FFF5EE 0%,#FDDCC8 60%,#E8BFA8 100%)',cat:'caring',owned:true,lumi:true,bonds:1},
+  {name:'Mika',creator:'@netty',c1:'#B8D4E8',c2:'#7BAFD4',grad:'linear-gradient(180deg,#E8F4FD 0%,#B8D4E8 60%,#7BAFD4 100%)',cat:'fun',owned:false,bonds:24},
+  {name:'Rex',creator:'@indie_lab',c1:'#D4E8D4',c2:'#8CB88C',grad:'linear-gradient(180deg,#F0FFF0 0%,#D4E8D4 60%,#8CB88C 100%)',cat:'chill',owned:false,bonds:18},
+  {name:'Luna',creator:'@moonrise',c1:'#E8D4F0',c2:'#C49EDB',grad:'linear-gradient(180deg,#F8F0FF 0%,#E8D4F0 60%,#C49EDB 100%)',cat:'creative',owned:false,bonds:31},
+  {name:'Sage',creator:'@calm_co',c1:'#F0E0C4',c2:'#D4B88C',grad:'linear-gradient(180deg,#FFF8EE 0%,#F0E0C4 60%,#D4B88C 100%)',cat:'caring',owned:false,bonds:12}
+];
+function buildDiscoverGrid(){
+  // Hero art
+  var heroArt=document.getElementById('discover-hero-art');
+  if(heroArt&&!heroArt.hasChildNodes()){heroArt.appendChild(buildLumiSVG(140,180));}
+  // Card grid
+  var grid=document.getElementById('discover-card-grid');
+  if(!grid)return;
+  while(grid.firstChild)grid.removeChild(grid.firstChild);
+  var activeCat=document.querySelector('.discover-pill.active');
+  var cat=activeCat?activeCat.getAttribute('data-cat'):'all';
+  var chars=discoverChars.filter(function(ch){return cat==='all'||ch.cat===cat;});
+  chars.forEach(function(ch){
+    var card=document.createElement('div');card.className='discover-char-card';
+    var art=document.createElement('div');art.className='discover-char-card-art';
+    art.style.background=ch.grad;
+    if(ch.lumi)art.appendChild(buildLumiSVG(80,100));
+    else art.appendChild(buildBlobSVG(60,75,ch.c1,ch.c2));
+    card.appendChild(art);
+    var overlay=document.createElement('div');overlay.className='discover-char-card-overlay';
+    var nm=document.createElement('div');nm.className='discover-char-card-name';nm.textContent=ch.name;overlay.appendChild(nm);
+    var cr=document.createElement('div');cr.className='discover-char-card-creator';cr.textContent=ch.creator;overlay.appendChild(cr);
+    var meta=document.createElement('div');meta.className='discover-char-card-meta';
+    var metaDot=document.createElement('span');metaDot.className='alive-dot';metaDot.style.cssText='width:6px;height:6px;margin-right:2px';
+    meta.appendChild(metaDot);meta.appendChild(document.createTextNode('alive \u00B7 '+ch.bonds+' bond'+(ch.bonds>1?'s':'')));
+    overlay.appendChild(meta);
+    card.appendChild(overlay);
+    if(ch.owned){var badge=document.createElement('div');badge.className='companion-badge';badge.textContent='Your Companion';card.appendChild(badge);}
+    card.addEventListener('click',function(){goTo('char-profile');});
+    grid.appendChild(card);
+  });
+  // Pill click handlers
+  var pills=document.querySelectorAll('.discover-pill');
+  pills.forEach(function(p){
+    p.onclick=function(){
+      pills.forEach(function(pp){pp.classList.remove('active');});
+      p.classList.add('active');
+      buildDiscoverGrid();
+    };
+  });
+}
+function openCredits(){document.getElementById('credits-overlay').classList.remove('hidden');}
+function closeCredits(){document.getElementById('credits-overlay').classList.add('hidden');}
+
+/* ═══ Flow Navigator ═══ */
+var flowNavOpen=false;
+function toggleFlowNav(){flowNavOpen=!flowNavOpen;document.getElementById('flow-nav').classList.toggle('open',flowNavOpen);}
+function ensureDefaults(){if(!userName)userName='Demo';if(!wakeTime)wakeTime='8:00am';if(!userMood)userMood='good';if(!userPlan)userPlan='meeting';if(!userPlanLabel)userPlanLabel='Meeting at 3pm';}
+function setActiveFlowItem(s){var items=document.querySelectorAll('.flow-nav-item');for(var i=0;i<items.length;i++){items[i].classList.remove('active');if(items[i].getAttribute('data-stage')===s)items[i].classList.add('active');}}
+function jumpTo(stage){
+  ensureDefaults();setActiveFlowItem(stage);
+  switch(stage){
+    case 'splash':goTo('splash');break;
+    case 'welcome':goTo('welcome');break;
+    case 'q1':goTo('q1');break;case 'q2':goTo('q2');break;
+    case 'characters':goTo('characters');break;
+    case 'chat':var mc=document.getElementById('messages');while(mc.firstChild)mc.removeChild(mc.firstChild);goTo('chat');startChat();break;
+    case 'closing':document.getElementById('closing-msg').textContent='Your character is alive. 💛';
+      document.getElementById('closing-sub').textContent='Lumi will check in at '+wakeTime;agreedTomorrow=true;goTo('closing');break;
+    case 'home-evening':goTo('home');setupHome('evening');setTimeout(showEveningBubble,600);break;
+    case 'push-sim':agreedTomorrow=true;skipToMorning();break;
+    case 'home-morning':goTo('home');setupHome('morning');setTimeout(function(){clearBubble();var b=document.getElementById('home-bubble');
+      var n=document.createElement('div');n.className='bubble-name';var dot=document.createElement('span');dot.className='alive-dot';n.appendChild(dot);
+      n.appendChild(document.createTextNode('Lumi'));b.appendChild(n);
+      var t=document.createElement('div');t.textContent='Tap me to chat! I remember everything. ✨';b.appendChild(t);},600);break;
+    case 'chat-day2':var mc2=document.getElementById('messages2');while(mc2.firstChild)mc2.removeChild(mc2.firstChild);goTo('chat-day2');startDay2Chat();break;
+    case 'home-daytime':goTo('home');setupHome('daytime');break;
+    case 'discover':buildDiscoverGrid();goTo('discover');break;
+    case 'profile':switchTab('profile');break;
+    case 'chat-afternoon':if(!userPlan)userPlan='meeting';if(!userPlanLabel)userPlanLabel='Meeting at 3pm';
+      var mc3=document.getElementById('messages3');while(mc3.firstChild)mc3.removeChild(mc3.firstChild);
+      goTo('chat-afternoon');startAfternoonChat();break;
+    case 'chat-evening':if(!userPlan)userPlan='meeting';if(!userPlanLabel)userPlanLabel='Meeting at 3pm';
+      var mc4=document.getElementById('messages4');while(mc4.firstChild)mc4.removeChild(mc4.firstChild);
+      goTo('chat-evening');startEveningChat();break;
+    case 'home-night2':goTo('home');setupHome('night2');break;
+    case 'life-grid':seedOnboardingData();seedDay2MorningData();renderLifeGrid();goTo('life-grid');break;
+    case 'miniapp-store':renderStore();goTo('miniapp-store');break;
+    case 'miniapp-today':seedOnboardingData();seedDay2MorningData();seedDay2AfternoonData();openMiniApp('today');break;
+    case 'miniapp-memories':seedOnboardingData();openMiniApp('memories');break;
+    case 'install-meals':mealsInstalled=false;renderStore();goTo('miniapp-store');break;
+    case 'chat-meals':mealsInstalled=true;var mc5=document.getElementById('messages5');while(mc5.firstChild)mc5.removeChild(mc5.firstChild);goTo('chat-meals');startMealsChat();break;
+    case 'miniapp-meals':mealsInstalled=true;if(!lifeData.meals.length)addLifeData('meals',{day:2,type:'Lunch',what:'Sandwich',time:'12:30 PM',emoji:'🥪'});openMiniApp('meals');break;
+    case 'char-profile':goTo('char-profile');break;
+    case 'chats-list':goTo('chats-list');break;
+    case 'credits':switchTab('profile');setTimeout(openCredits,300);break;
+  }
+  flowNavOpen=false;document.getElementById('flow-nav').classList.remove('open');
+}
+
+document.addEventListener('DOMContentLoaded',initSVGs);
+</script>
+<script src="../nav.js"></script>
+</body>
+</html>
