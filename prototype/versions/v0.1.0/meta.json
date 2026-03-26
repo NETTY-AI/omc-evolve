@@ -1,0 +1,9 @@
+{
+  "version": "0.1.0",
+  "created_at": "2026-03-26T17:05:00+09:00",
+  "fidelity_level": "baseline",
+  "note": "기존 prototype-v0.1.html 그대로 이관. 베이스라인.",
+  "changes": ["prototype-v0.1.html → baseline v0.1.0"],
+  "review": null,
+  "human_feedback": null
+}
