@@ -127,3 +127,14 @@
 - 새 용어 추가 시: IDENTITY.md 또는 해당 SSOT에 개념이 먼저 있어야 함
 - 용어 변경 시: 이 문서 변경 → 모든 SSOT 문서에서 검색/치환 → 코드 변수명 치환
 - 프로토타이핑 세션에서 새 용어가 자연 발생하면: 이 문서에 추가 요청
+
+## Evolve Cycle
+
+| 이름 | 종류 | 의미 | 사용 맥락 |
+|------|------|------|----------|
+| **Evolve Cycle** | 시스템명 | 프로토타입을 에이전트가 자율적으로 반복 개선하되, 매 이터레이션마다 사람이 웹 URL로 평가하는 자가 진화 사이클 | 시스템 설계, Slack, 리뷰 포털, 문서 |
+| **ohmyc-evolve** | repo명 | Evolve Cycle을 실행하는 GitHub repo | GitHub, Vercel, 배포 URL |
+
+- "루프", "자가 개선 루프", "자가 루프" 대신 **Evolve Cycle**을 사용한다.
+- 한 바퀴 = 1 Evolve Cycle = Evaluate → Plan → Build → Review → Gate → Publish.
+- SSOT 문서는 Evolve Cycle에서 읽기만 가능. 변경은 Human-in-the-Loop Only.

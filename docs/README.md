@@ -16,11 +16,11 @@
 | **FLOWS.md** | 화면 & 유저 플로우 정의 | 자주 |
 | **GLOSSARY.md** | 용어 사전 | 가끔 |
 
-### Evolve 시스템
+### Evolve Cycle 시스템
 
 | 문서 | 역할 |
 |------|------|
-| **SYSTEM.md** | Evolve 루프 시스템 설계 |
+| **SYSTEM.md** | Evolve Cycle 시스템 설계 |
 | **CHECKLIST.md** | L1~L4 평가 체크리스트 (27항목) |
 
 ## 의존 관계
