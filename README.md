@@ -52,4 +52,6 @@ ohmyc-evolve/
 
 `prototype/current/` → GitHub Pages (main 브랜치)
 
-URL: `https://netty-ai.github.io/ohmyc-evolve/prototype/current/`
+- 최신 프로토타입: https://netty-ai.github.io/ohmyc-evolve/current/
+- 리뷰 포털: https://netty-ai.github.io/ohmyc-evolve/review.html
+- 버전별: https://netty-ai.github.io/ohmyc-evolve/versions/v000/
