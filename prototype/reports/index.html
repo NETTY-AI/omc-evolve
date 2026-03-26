@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ohmyc-evolve — Reports</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --tint: #FF8552; --tint-soft: #FFF4EE;
+      --label: #1D1D1F; --label-secondary: rgba(60,60,67,0.6); --label-tertiary: rgba(60,60,67,0.3);
+      --bg: #F5F5F7; --card: #FFFFFF; --separator: rgba(60,60,67,0.12);
+      --yellow: #FF9500; --blue: #007AFF; --purple: #AF52DE; --green: #34C759;
+      --font: 'Inter',-apple-system,system-ui,sans-serif;
+      --radius-md: 14px; --radius-lg: 20px; --radius-full: 9999px;
+    }
+    @media (prefers-color-scheme:dark) {
+      :root { --label:#F5F5F7; --label-secondary:rgba(235,235,245,0.6); --label-tertiary:rgba(235,235,245,0.3); --bg:#000; --card:#1C1C1E; --separator:rgba(84,84,88,0.36); }
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:var(--font); background:var(--bg); color:var(--label); min-height:100vh; -webkit-font-smoothing:antialiased; }
+    .container { max-width:800px; margin:0 auto; padding:48px 20px 80px; }
+    h1 { font-size:28px; font-weight:700; margin-bottom:4px; letter-spacing:-0.02em; }
+    .sub { font-size:15px; color:var(--label-secondary); margin-bottom:32px; }
+
+    .filter-bar { display:flex; gap:8px; margin-bottom:24px; flex-wrap:wrap; }
+    .filter-pill {
+      padding:6px 14px; border-radius:var(--radius-full); font-size:13px; font-weight:600;
+      border:1.5px solid var(--separator); background:var(--card); color:var(--label-secondary);
+      cursor:pointer; transition:all 0.15s; font-family:var(--font);
+    }
+    .filter-pill:hover { border-color:var(--tint); color:var(--tint); }
+    .filter-pill.active { background:var(--tint); color:white; border-color:var(--tint); }
+
+    .report-card {
+      background:var(--card); border-radius:var(--radius-lg); padding:20px;
+      margin-bottom:12px; box-shadow:0 1px 4px rgba(0,0,0,0.04);
+    }
+    .report-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:12px; }
+    .report-type {
+      display:inline-flex; align-items:center; gap:4px;
+      padding:3px 10px; border-radius:var(--radius-full);
+      font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;
+    }
+    .type-idea { background:#FFF3E0; color:var(--yellow); }
+    .type-discussion { background:#E3F2FD; color:var(--blue); }
+    .type-blocker { background:#FCE4EC; color:#FF3B30; }
+    .type-suggestion { background:#F3E5F5; color:var(--purple); }
+    .type-resolved { background:#E8F5E9; color:var(--green); }
+
+    .report-version { font-size:11px; color:var(--label-tertiary); }
+    .report-title { font-size:17px; font-weight:600; margin-bottom:6px; }
+    .report-body { font-size:15px; color:var(--label-secondary); line-height:1.6; }
+    .report-meta { display:flex; gap:16px; margin-top:12px; font-size:12px; color:var(--label-tertiary); }
+    .report-status { font-weight:600; }
+
+    .empty-state { text-align:center; padding:60px 20px; color:var(--label-tertiary); }
+    .empty-state .icon { font-size:48px; margin-bottom:12px; }
+    .empty-state p { font-size:15px; line-height:1.5; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📋 Cycle Reports</h1>
+    <p class="sub">루프 사이클에서 발견된 아이디어, 논의 사항, 블로커를 리포트합니다.</p>
+
+    <div class="filter-bar">
+      <button class="filter-pill active" onclick="filter('all', this)">All</button>
+      <button class="filter-pill" onclick="filter('idea', this)">💡 아이디어</button>
+      <button class="filter-pill" onclick="filter('discussion', this)">💬 논의 필요</button>
+      <button class="filter-pill" onclick="filter('blocker', this)">🚫 블로커</button>
+      <button class="filter-pill" onclick="filter('suggestion', this)">✨ 제안</button>
+      <button class="filter-pill" onclick="filter('resolved', this)">✅ 해결됨</button>
+    </div>
+
+    <div id="reports">
+      <div class="empty-state">
+        <div class="icon">📋</div>
+        <p>아직 리포트가 없습니다.<br>첫 번째 루프 사이클을 실행하면 여기에 표시됩니다.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var reports = []; // Will be populated from reports.json
+
+    function filter(type, btn) {
+      document.querySelectorAll('.filter-pill').forEach(function(p) { p.classList.remove('active'); });
+      btn.classList.add('active');
+      render(type === 'all' ? reports : reports.filter(function(r) { return r.type === type; }));
+    }
+
+    function render(items) {
+      var container = document.getElementById('reports');
+      if (!items.length) {
+        container.innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>해당 유형의 리포트가 없습니다.</p></div>';
+        return;
+      }
+      container.innerHTML = items.map(function(r) {
+        var typeClass = 'type-' + r.type;
+        var typeLabel = {idea:'💡 아이디어',discussion:'💬 논의 필요',blocker:'🚫 블로커',suggestion:'✨ 제안',resolved:'✅ 해결됨'}[r.type] || r.type;
+        return '<div class="report-card" data-type="' + r.type + '">' +
+          '<div class="report-header">' +
+            '<span class="report-type ' + typeClass + '">' + typeLabel + '</span>' +
+            '<span class="report-version">' + (r.version || '') + '</span>' +
+          '</div>' +
+          '<div class="report-title">' + r.title + '</div>' +
+          '<div class="report-body">' + r.body + '</div>' +
+          '<div class="report-meta">' +
+            '<span>' + (r.date || '') + '</span>' +
+            '<span class="report-status">' + (r.status || 'open') + '</span>' +
+            (r.source ? '<span>from: ' + r.source + '</span>' : '') +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    // Load reports
+    fetch('reports.json')
+      .then(function(r) { return r.ok ? r.json() : []; })
+      .then(function(data) { reports = data; render(reports); })
+      .catch(function() { render([]); });
+  </script>
+  <script src="../nav.js"></script>
+</body>
+</html>
