@@ -69,7 +69,8 @@
     '<div class="evolve-nav-title">Prototypes</div>',
     '<a href="' + base + 'current/"><span class="evolve-nav-icon">👤</span> User Flow (Latest)</a>',
     '<a href="' + base + 'current/creator.html"><span class="evolve-nav-icon">🎨</span> Creator Flow (Latest)</a>',
-    '<div class="evolve-nav-title" id="evolve-nav-versions">Versions</div>',
+    '<div class="evolve-nav-title evolve-nav-toggle" id="evolve-nav-versions" style="cursor:pointer;user-select:none">Versions <span id="evolve-ver-arrow" style="font-size:8px;margin-left:4px">▶</span></div>',
+    '<div id="evolve-ver-list" style="display:none"></div>',
     '<div class="evolve-nav-title">SSOT Docs</div>',
     '<a href="https://github.com/NETTY-AI/ohmyc-evolve/blob/main/docs/IDENTITY.md" target="_blank"><span class="evolve-nav-icon">📋</span> IDENTITY</a>',
     '<a href="https://github.com/NETTY-AI/ohmyc-evolve/blob/main/docs/UX.md" target="_blank"><span class="evolve-nav-icon">🎯</span> UX</a>',
@@ -91,21 +92,33 @@
   document.body.appendChild(overlay);
   document.body.appendChild(nav);
 
-  // Dynamically load versions into sidebar from manifest
+  // Dynamically load versions into sidebar from manifest (dropdown, DESC)
+  var verToggle = document.getElementById('evolve-nav-versions');
+  var verList = document.getElementById('evolve-ver-list');
+  var verArrow = document.getElementById('evolve-ver-arrow');
+  if (verToggle && verList) {
+    verToggle.addEventListener('click', function() {
+      var open = verList.style.display !== 'none';
+      verList.style.display = open ? 'none' : 'block';
+      if (verArrow) verArrow.textContent = open ? '▶' : '▼';
+    });
+  }
+
   fetch(base + 'versions-manifest.json')
     .then(function(r){ return r.ok ? r.json() : null; })
     .then(function(manifest){
-      if (!manifest) return;
-      var anchor = document.getElementById('evolve-nav-versions');
-      if (!anchor) return;
-      manifest.versions.forEach(function(v){
+      if (!manifest || !verList) return;
+      // Already sorted DESC in manifest, but ensure it
+      var sorted = manifest.versions.slice().sort(function(a, b){
+        return b.version.localeCompare(a.version, undefined, {numeric: true});
+      });
+      sorted.forEach(function(v){
         v.files.forEach(function(file){
           var a = document.createElement('a');
           a.href = base + 'versions/' + v.version + '/' + (file === 'index.html' ? '' : file);
           var flowName = file === 'index.html' ? 'User' : file.replace('.html','').replace(/^\w/, function(c){return c.toUpperCase()});
           a.innerHTML = '<span class="evolve-nav-icon">📁</span> ' + v.version + ' ' + flowName;
-          anchor.parentNode.insertBefore(a, anchor.nextSibling);
-          // Insert after the title, but we want newest first so we keep inserting after title
+          verList.appendChild(a);
         });
       });
     })
