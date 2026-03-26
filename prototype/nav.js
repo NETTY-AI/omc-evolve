@@ -71,6 +71,11 @@
     '<div class="evolve-nav-title">Versions</div>',
     '<a href="' + base + 'versions/v0.1.0/"><span class="evolve-nav-icon">📁</span> v0.1.0 User</a>',
     '<a href="' + base + 'versions/v0.1.0/creator.html"><span class="evolve-nav-icon">📁</span> v0.1.0 Creator</a>',
+    '<div class="evolve-nav-title">SSOT Docs</div>',
+    '<a href="https://github.com/NETTY-AI/ohmyc-evolve/blob/main/docs/IDENTITY.md" target="_blank"><span class="evolve-nav-icon">📋</span> IDENTITY</a>',
+    '<a href="https://github.com/NETTY-AI/ohmyc-evolve/blob/main/docs/UX.md" target="_blank"><span class="evolve-nav-icon">🎯</span> UX</a>',
+    '<a href="https://github.com/NETTY-AI/ohmyc-evolve/blob/main/docs/CHARACTER-AGENT-SPEC.md" target="_blank"><span class="evolve-nav-icon">🧠</span> SPEC</a>',
+    '<a href="https://github.com/NETTY-AI/ohmyc-evolve/blob/main/docs/VI.md" target="_blank"><span class="evolve-nav-icon">🎨</span> VI</a>',
     '<div class="evolve-nav-title">Links</div>',
     '<a href="https://github.com/NETTY-AI/ohmyc-evolve" target="_blank"><span class="evolve-nav-icon">🔗</span> GitHub</a>',
   ].join('');
